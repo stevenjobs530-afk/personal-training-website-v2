@@ -117,29 +117,32 @@ function formatStepperValue(value: number, valueKind: "decimal" | "integer") {
 }
 
 function NumberStepper({
+  buttonStep,
   defaultValue,
   disabled,
   decrementLabel,
   id,
   incrementLabel,
   inputMode,
+  inputStep,
   name,
   placeholder,
-  step,
   valueKind,
 }: {
+  buttonStep: number;
   defaultValue: string;
   disabled: boolean;
   decrementLabel: string;
   id: string;
   incrementLabel: string;
   inputMode: "decimal" | "numeric";
+  inputStep?: number | "any";
   name: string;
   placeholder: string;
-  step: number;
   valueKind: "decimal" | "integer";
 }) {
   const [value, setValue] = useState(defaultValue);
+  const browserInputStep = inputStep ?? buttonStep;
 
   function adjustValue(delta: number) {
     setValue((currentValue) => {
@@ -166,7 +169,7 @@ function NumberStepper({
         aria-label={decrementLabel}
         className="min-h-12 border-r border-[var(--border)] px-3 text-lg font-bold text-[var(--accent)] disabled:cursor-not-allowed disabled:text-[var(--muted)]"
         disabled={disabled}
-        onClick={() => adjustValue(-step)}
+        onClick={() => adjustValue(-buttonStep)}
         type="button"
       >
         -
@@ -181,7 +184,7 @@ function NumberStepper({
         onChange={(event) => handleChange(event.target.value)}
         placeholder={placeholder}
         required
-        step={step}
+        step={browserInputStep}
         type="number"
         value={value}
       />
@@ -189,7 +192,7 @@ function NumberStepper({
         aria-label={incrementLabel}
         className="min-h-12 border-l border-[var(--border)] px-3 text-lg font-bold text-[var(--accent)] disabled:cursor-not-allowed disabled:text-[var(--muted)]"
         disabled={disabled}
-        onClick={() => adjustValue(step)}
+        onClick={() => adjustValue(buttonStep)}
         type="button"
       >
         +
@@ -361,15 +364,16 @@ function AddSetForm({
           </label>
           <NumberStepper
             key={`${fieldResetKey}-${defaultWeight}`}
+            buttonStep={weightStep}
             defaultValue={defaultWeight}
             decrementLabel="Decrease weight by 2.5kg"
             disabled={pending}
             id="weight"
             incrementLabel="Increase weight by 2.5kg"
             inputMode="decimal"
+            inputStep="any"
             name="weight"
             placeholder="0"
-            step={weightStep}
             valueKind="decimal"
           />
         </div>
@@ -383,6 +387,7 @@ function AddSetForm({
           </label>
           <NumberStepper
             key={`${fieldResetKey}-${defaultReps}`}
+            buttonStep={repsStep}
             defaultValue={defaultReps}
             decrementLabel="Decrease reps by 1"
             disabled={pending}
@@ -391,7 +396,6 @@ function AddSetForm({
             inputMode="numeric"
             name="reps"
             placeholder="10"
-            step={repsStep}
             valueKind="integer"
           />
         </div>

@@ -117,14 +117,21 @@ Typical development URL:
 - `http://localhost:3000`
 - `http://localhost:3000/auth/callback`
 
-Typical production URL:
+Current production URL:
 
-- `https://your-vercel-project.vercel.app`
-- `https://your-vercel-project.vercel.app/auth/callback`
+- `https://personal-training-website-v2.vercel.app`
+- `https://personal-training-website-v2.vercel.app/**`
 
 Do not assume a localhost login test proves iPhone production behavior. Browser sessions can differ between in-app browsers, Chrome, Safari, and Vercel production.
 
-The reused Supabase project still had the old production Site URL and redirect URL during the 2026-06-20 connection check. Email/password login does not require an auth callback redirect, but URL settings should be replaced with the Version 2 localhost and production URLs before production deployment or any email-link/password-reset flow is introduced.
+During the 2026-06-20 production link setup, Supabase Auth URL configuration was updated for Version 2:
+
+- Site URL: `https://personal-training-website-v2.vercel.app`
+- Redirect URL: `http://localhost:3000/**`
+- Redirect URL: `http://localhost:3000/auth/callback`
+- Redirect URL: `https://personal-training-website-v2.vercel.app/**`
+
+The old `setline-personal-training` production redirect URL was removed. Email/password login does not require an auth callback redirect, but these URL settings keep password recovery and any future callback-based flows pointed at the Version 2 site.
 
 ## Environment Variables
 

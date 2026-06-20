@@ -14,6 +14,12 @@ Public signup was disabled in Supabase Auth settings. Email/password auth remain
 
 A local `.env.local` file was created on this machine with client-safe Supabase values only. It is ignored by Git and must not be committed or pasted into docs.
 
+On 2026-06-20, the Vercel production project was created at:
+
+- https://personal-training-website-v2.vercel.app
+
+Vercel Production and Preview environments were configured with the same client-safe Supabase variable names. Values are intentionally not documented here.
+
 ## Local Environment
 
 Create a local `.env.local` file in the repository root. This file is ignored by Git.
@@ -44,6 +50,8 @@ When deploying to Vercel, add the same client-safe variables in the Vercel proje
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
 
+These variables are configured for the `personal-training-website-v2` Vercel project as of 2026-06-20.
+
 Do not add a service role key unless a future server-only feature explicitly needs one and the architecture is updated first.
 
 ## Supabase Auth Settings
@@ -55,23 +63,23 @@ In Supabase Auth settings:
 3. Create the owner account manually in Supabase Auth or through another controlled setup.
 4. Configure URL settings for local and production usage.
 
-Recommended local URL entries:
+Current local URL entries:
 
-- Site URL: `http://localhost:3000`
 - Redirect URL: `http://localhost:3000/**`
+- Redirect URL: `http://localhost:3000/auth/callback`
 
-Recommended production URL entries:
+Current production URL entries:
 
-- Site URL: `https://your-production-domain.example`
-- Redirect URL: `https://your-production-domain.example/**`
+- Site URL: `https://personal-training-website-v2.vercel.app`
+- Redirect URL: `https://personal-training-website-v2.vercel.app/**`
 
 For Vercel preview deployments, add a preview redirect pattern only if preview login testing is needed:
 
 - `https://*-your-team-or-account-slug.vercel.app/**`
 
-Use exact production URLs where possible. Wildcards are most useful for localhost and preview environments.
+Use exact production Site URLs where possible. Wildcards are most useful for localhost, production path redirects, and preview environments.
 
-The reused project may still contain older Site URL or redirect URL values. Replace those with the Version 2 production URL once the Vercel project is ready.
+The reused project's old `setline-personal-training` production redirect URL was removed on 2026-06-20 after the Version 2 production URL was added.
 
 ## Current Auth Flow
 

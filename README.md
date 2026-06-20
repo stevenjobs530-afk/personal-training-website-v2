@@ -8,7 +8,11 @@ The app is for personal use only. It may eventually be deployed to a public Verc
 
 This repository has a Next.js App Router app, login-only Supabase Auth foundation, and Supabase migration files for the Version 1 schema, RLS, and live grants hardening.
 
-The migration has been applied and verified in the selected existing Supabase project. Local Supabase environment variables are configured in ignored `.env.local`; Vercel environment variables still need to be configured outside Git before production testing.
+The migration has been applied and verified in the selected existing Supabase project. Local Supabase environment variables are configured in ignored `.env.local`, and the production Vercel project has the same client-safe Supabase variable names configured outside Git.
+
+Production URL:
+
+- https://personal-training-website-v2.vercel.app
 
 Stage 3 workout logging MVP code is implemented locally, and Stage 4 UX Rework has simplified the workout entry flow:
 
@@ -21,9 +25,9 @@ Stage 3 workout logging MVP code is implemented locally, and Stage 4 UX Rework h
 - recent workout history from sessions, exercises, and sets
 - protected route redirects for signed-out visitors
 
-The authenticated owner workflow still needs final manual browser QA on this machine before claiming the reworked Version 1 flow is fully verified. Production readiness also still requires Vercel environment variables and production auth URL testing.
+The authenticated owner workflow still needs final manual browser QA on this machine before claiming the reworked Version 1 flow is fully verified. Production signed-out route protection has been checked, but production login, logout, and workout logging still require the owner to enter the controlled account password.
 
-See `SUPABASE_SETUP.md` for placeholder-only manual setup notes.
+See `SUPABASE_SETUP.md` for setup and manual QA notes.
 
 ## Version 1 Boundary
 

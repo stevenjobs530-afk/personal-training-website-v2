@@ -204,6 +204,28 @@ This file tracks what has been done, what failed, and what future Codex sessions
   - Did not implement progress charts, analytics, schema changes, auth changes, or free-text note parsing.
   - Verified `npm run lint` and `npm run build` pass.
   - Review status: UNIFIED WORKOUT ENTRY READY FOR PROGRESS STAGE, with remaining owner logged-in QA required for live write/refresh/history confirmation.
+- 2026-06-20: Completed Stage 4 Polish 1 flexible manual weight input:
+  - Owner feedback: manually typing a value such as `52` in the workout set weight field could be blocked by browser number-input validation because the input used `step=2.5`.
+  - Cause: the reusable stepper used the same `step` value for the quick +/- buttons and the native HTML input validation rule.
+  - Fix: separated the button step from the browser input step. Weight buttons still move by 2.5kg, while the weight input uses `step="any"` so arbitrary non-negative decimal weights such as `52`, `52.5`, `52.25`, and `80` are allowed.
+  - Reps keep the 1-rep button step and integer-style browser input step.
+  - Server-side validation remained unchanged: `createWorkoutSet` still accepts finite non-negative weight values and rejects negative values.
+  - No database schema, RLS, auth flow, Supabase setup, public signup behavior, or progress analytics were changed.
+  - Verified `npm run lint` and `npm run build` pass; local `/login` still returns `200`, and signed-out `/workouts/test-session-id` still redirects to `/login?next=%2Fworkouts%2Ftest-session-id`.
+  - Remaining limitation: owner logged-in manual QA still needs to confirm saved weight values, +/- behavior, refresh persistence, and recent-history display with real session data.
+- 2026-06-20: Established the Version 2 Vercel production link:
+  - Confirmed `main` was aligned with `origin/main` before deployment setup.
+  - Confirmed the GitHub repository is `stevenjobs530-afk/personal-training-website-v2`.
+  - Installed the Vercel GitHub app for the selected repository only, not all repositories.
+  - Created the Vercel project `personal-training-website-v2` from the GitHub repository with the Next.js preset and root directory `./`.
+  - Configured Vercel Production and Preview environment variable names `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` using the ignored local `.env.local` values without printing, committing, or documenting the values.
+  - Deployed production successfully at `https://personal-training-website-v2.vercel.app`.
+  - Updated Supabase Auth URL configuration so the Site URL is the Version 2 production URL, the redirect allow list keeps localhost development entries, and the new Version 2 production wildcard redirect is present.
+  - Removed the old `https://setline-personal-training.vercel.app` redirect URL from Supabase Auth.
+  - Verified production `/login` returns `200`.
+  - Verified production `/dashboard` while signed out redirects to `/login?next=%2Fdashboard`.
+  - Did not read, type, copy, or store the owner password, cookies, tokens, or any Supabase service role key.
+  - Remaining limitation: production owner login, logout, and live workout logging QA still require the owner to enter the controlled account password.
 
 ## Failed Or Abandoned Attempts
 
@@ -222,9 +244,9 @@ This file tracks what has been done, what failed, and what future Codex sessions
 - Authenticated workout session and set create/delete needs manual browser smoke testing in the owner's logged-in session.
 - Authenticated recent history display needs manual browser smoke testing with real saved sets.
 - Real owner-account logout still needs manual browser confirmation because Codex should not know or type the account password.
-- The reused Supabase project's URL configuration still references an old production URL; update it once the Version 2 Vercel URL is ready.
 - Stage 4 owner feedback says the Stage 3 MVP works but the workout entry experience feels too fragmented. Do not start Stage 4 by redesigning the database; start by making the existing structured session/exercise/set relationship obvious and fast in the UI.
 - UX Rework 5 concludes the current structured entry flow is ready to support a future progress stage, but owner logged-in workflow QA still needs to prove live writes, refresh persistence, and recent-history grouping with real saved sets.
+- Production login, logout, and workout logging still need owner manual QA because Codex should not know or type the controlled account password.
 
 ## Current Priorities
 
@@ -233,8 +255,7 @@ This file tracks what has been done, what failed, and what future Codex sessions
 - Plan progress summaries from existing structured joins only after owner logged-in UX workflow QA is complete; do not add charts before that confirmation.
 - Test logout and authenticated exercise create/update/delete behavior with the controlled owner account.
 - Test authenticated workout session creation, warmup/working set entry, and recent history display with the controlled owner account.
-- Configure Vercel environment variables before production deployment.
-- Replace old Supabase Auth URL settings with Version 2 localhost and production URLs before production auth testing.
+- Complete owner-controlled production QA now that Vercel environment variables and Supabase Auth URL settings are configured.
 
 ## Next Planned Tasks
 
@@ -242,8 +263,8 @@ This file tracks what has been done, what failed, and what future Codex sessions
 - Test real logout on localhost using the controlled owner account.
 - Test real exercise add, refresh persistence, edit, duplicate-name handling, and safe delete on localhost using the controlled owner account.
 - Test real workout session creation, refresh persistence, warmup set entry, working set entry, invalid set input handling, delete-set behavior, and recent history display on localhost using the controlled owner account.
-- Test real login/logout on production once Vercel environment variables and Auth URL settings are configured.
-- Configure Vercel environment variables and production Auth URL settings before production deployment testing.
+- Test real login/logout on production using the controlled owner account.
+- Test real production workout session creation, warmup/working set entry, refresh persistence, logout protection, and recent history display using the controlled owner account.
 
 ## Things To Avoid Repeating
 
