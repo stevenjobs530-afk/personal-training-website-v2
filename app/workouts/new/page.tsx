@@ -22,7 +22,7 @@ export default async function NewWorkoutPage() {
       <PlaceholderPage
         eyebrow="New Workout"
         title="Start a workout"
-        description="Create a dated workout session before adding warmup and working sets."
+        description="Pick the workout date first. Exercises, warmup sets, and working sets are added on the next screen."
       >
         <NewWorkoutForm defaultDate={getTodayDateInputValue()} />
       </PlaceholderPage>

@@ -57,23 +57,28 @@ export function NewWorkoutForm({ defaultDate }: NewWorkoutFormProps) {
           required
           type="date"
         />
+        <p className="text-sm leading-6 text-[var(--muted)]">
+          Create the session, then add exercises and sets right after.
+        </p>
       </div>
 
-      <div className="space-y-2">
-        <label
-          className="text-sm font-semibold text-[var(--foreground)]"
-          htmlFor="workout-notes"
-        >
-          Notes
-        </label>
-        <textarea
-          className="min-h-24 w-full resize-y rounded-md border border-[var(--border)] bg-white px-3 py-3 text-base outline-none focus:border-[var(--accent)] disabled:bg-[var(--surface-strong)]"
-          disabled={pending}
-          id="workout-notes"
-          name="notes"
-          placeholder="Optional session notes"
-        />
-      </div>
+      <details className="rounded-md border border-[var(--border)] bg-white">
+        <summary className="flex min-h-12 cursor-pointer items-center px-3 text-sm font-semibold text-[var(--foreground)]">
+          Optional session notes
+        </summary>
+        <div className="space-y-2 border-t border-[var(--border)] p-3">
+          <label className="sr-only" htmlFor="workout-notes">
+            Optional session notes
+          </label>
+          <textarea
+            className="min-h-16 w-full resize-y rounded-md border border-[var(--border)] bg-white px-3 py-3 text-base outline-none focus:border-[var(--accent)] disabled:bg-[var(--surface-strong)]"
+            disabled={pending}
+            id="workout-notes"
+            name="notes"
+            placeholder="Anything about the whole session"
+          />
+        </div>
+      </details>
 
       <ActionMessage state={state} />
 

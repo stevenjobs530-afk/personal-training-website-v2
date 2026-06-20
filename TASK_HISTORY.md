@@ -165,6 +165,13 @@ This file tracks what has been done, what failed, and what future Codex sessions
   - Documented owner feedback that the Stage 3 MVP works, but the workout entry flow feels too fragmented: exercise management is separate from set entry, `/workouts/new` has a prominent session notes field, and the structured flow is not obvious enough in the gym.
   - Recommended the next UI rework direction without schema or auth changes: a single mobile-first workout entry flow with date first, an exercise dropdown, inline exercise creation when needed, warmup/working set rows directly under the selected exercise, a 2.5kg default weight stepper, reps/units input, and notes kept optional rather than primary.
   - No schema, auth, or code behavior was changed during UX Rework 0.
+- 2026-06-20: Completed UX Rework 1 free-text workout notes reduction:
+  - Updated `/workouts/new` wording so the page presents date/session creation as the first step before structured exercise and set entry.
+  - Kept `workout_sessions.notes` available, but changed the visible label to optional session notes, reduced the textarea height, and placed it inside a secondary collapsible section.
+  - Kept `createWorkoutSession` behavior unchanged; successful creation still redirects to `/workouts/[sessionId]`.
+  - Did not remove notes from the database, change schema, change auth, or add progress analysis.
+  - Verified `npm run lint` and `npm run build` pass.
+  - Browser plugin mobile QA failed with the existing sandbox metadata issue, so Playwright fallback captured a 390x844 `/workouts/new` request showing protected redirect to `/login?next=%2Fworkouts%2Fnew`; authenticated mobile form and create-session redirect still require an owner logged-in browser session.
 
 ## Failed Or Abandoned Attempts
 
