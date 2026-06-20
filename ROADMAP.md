@@ -28,6 +28,18 @@ Version 1 should include:
 - responsive layout for iPad and macOS
 - simple refresh/refetch behavior after changes
 
+## Current Workflow Status
+
+UX Rework 1-5 confirms the Version 1 workout entry flow is now structured enough for a future progress stage:
+
+- `/workouts/new` creates a dated workout session and sends the owner to the session detail page for structured set entry.
+- `/workouts/[sessionId]` starts with exercise selection, supports inline exercise creation, and records warmup/working sets under the selected exercise.
+- Each saved set keeps `session_id`, `exercise_id`, `set_kind`, `weight`, `reps`, `set_number`, and optional notes.
+- `/workouts` recent history reads sessions, sets, and exercises, then groups sets under each exercise name.
+- Session notes and set notes remain optional context fields, not the primary place for structured workout data.
+
+Do not add progress charts yet. The next progress stage can derive summaries from `workout_sets` joined to `workout_sessions` and `exercises` after owner logged-in workflow QA confirms live writes and refresh persistence.
+
 ## Version 1 Route Candidates
 
 - `/login`

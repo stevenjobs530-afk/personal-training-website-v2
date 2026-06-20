@@ -196,6 +196,14 @@ This file tracks what has been done, what failed, and what future Codex sessions
   - Kept iPhone-sized large touch controls and did not add settings, schema changes, or new tables.
   - Verified `npm run lint` and `npm run build` pass.
   - Browser plugin QA still fails with the known sandbox metadata issue, so Playwright fallback verified signed-out `/workouts/test-session-id` redirects to login; authenticated warmup/working submit tests still require an owner logged-in browser session.
+- 2026-06-20: Completed UX Rework 5 progress-ready structured logging review:
+  - Reviewed the full set-entry path and confirmed each saved set has workout date through `workout_sessions`, exercise through `exercise_id`, `set_kind`, `weight`, `reps`, `set_number`, user ownership, and optional notes.
+  - Confirmed `/workouts/[sessionId]` encourages structured exercise/set entry through exercise selection, inline exercise creation, warmup/working toggles, quick weight/reps controls, and secondary optional notes.
+  - Confirmed `/workouts` recent history groups recorded sets by exercise and displays each set's kind, number, weight, reps, and notes.
+  - Updated `ROADMAP.md` to record that the unified workout entry flow is progress-ready, while keeping charts and progress analysis out of the current step.
+  - Did not implement progress charts, analytics, schema changes, auth changes, or free-text note parsing.
+  - Verified `npm run lint` and `npm run build` pass.
+  - Review status: UNIFIED WORKOUT ENTRY READY FOR PROGRESS STAGE, with remaining owner logged-in QA required for live write/refresh/history confirmation.
 
 ## Failed Or Abandoned Attempts
 
@@ -216,11 +224,13 @@ This file tracks what has been done, what failed, and what future Codex sessions
 - Real owner-account logout still needs manual browser confirmation because Codex should not know or type the account password.
 - The reused Supabase project's URL configuration still references an old production URL; update it once the Version 2 Vercel URL is ready.
 - Stage 4 owner feedback says the Stage 3 MVP works but the workout entry experience feels too fragmented. Do not start Stage 4 by redesigning the database; start by making the existing structured session/exercise/set relationship obvious and fast in the UI.
+- UX Rework 5 concludes the current structured entry flow is ready to support a future progress stage, but owner logged-in workflow QA still needs to prove live writes, refresh persistence, and recent-history grouping with real saved sets.
 
 ## Current Priorities
 
 - Keep `workout_sets -> workout_sessions -> exercises` as the structured source of truth unless the owner explicitly approves a schema redesign later.
 - Test the completed UX Rework 1-3 flow in an owner logged-in browser session, including inline exercise creation, existing exercise selection, repeated set entry, refresh persistence, and recent history display.
+- Plan progress summaries from existing structured joins only after owner logged-in UX workflow QA is complete; do not add charts before that confirmation.
 - Test logout and authenticated exercise create/update/delete behavior with the controlled owner account.
 - Test authenticated workout session creation, warmup/working set entry, and recent history display with the controlled owner account.
 - Configure Vercel environment variables before production deployment.
