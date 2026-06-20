@@ -158,6 +158,13 @@ This file tracks what has been done, what failed, and what future Codex sessions
   - Verified `.env.local` remains ignored and untracked.
   - Verified `npm run lint` and `npm run build` pass after Stage 3.4/3.5 updates.
   - Full authenticated workflow QA still needs owner manual confirmation: login, add exercise, create session, add warmup set, add working set, view recent history, logout, and confirm protected routes are blocked again.
+- 2026-06-20: Completed UX Rework 0 data model and owner-feedback review:
+  - Confirmed `DATABASE_SCHEMA.md` already models `workout_sets` as structured rows linked to both `workout_sessions` through `session_id` and `exercises` through `exercise_id`, with `user_id`, `set_kind`, `weight`, `reps`, `set_number`, and optional notes.
+  - Confirmed `createWorkoutSet` in `app/workouts/actions.ts` already reads and inserts `session_id`, `exercise_id`, `set_kind`, `weight`, and `reps`, plus `user_id`, `set_number`, and optional notes.
+  - Confirmed the backend relationship is correct enough for future progress analysis, because saved sets can be compared by joining `workout_sets` to `workout_sessions` and `exercises`.
+  - Documented owner feedback that the Stage 3 MVP works, but the workout entry flow feels too fragmented: exercise management is separate from set entry, `/workouts/new` has a prominent session notes field, and the structured flow is not obvious enough in the gym.
+  - Recommended the next UI rework direction without schema or auth changes: a single mobile-first workout entry flow with date first, an exercise dropdown, inline exercise creation when needed, warmup/working set rows directly under the selected exercise, a 2.5kg default weight stepper, reps/units input, and notes kept optional rather than primary.
+  - No schema, auth, or code behavior was changed during UX Rework 0.
 
 ## Failed Or Abandoned Attempts
 
@@ -177,9 +184,12 @@ This file tracks what has been done, what failed, and what future Codex sessions
 - Authenticated recent history display needs manual browser smoke testing with real saved sets.
 - Real owner-account logout still needs manual browser confirmation because Codex should not know or type the account password.
 - The reused Supabase project's URL configuration still references an old production URL; update it once the Version 2 Vercel URL is ready.
+- Stage 4 owner feedback says the Stage 3 MVP works but the workout entry experience feels too fragmented. Do not start Stage 4 by redesigning the database; start by making the existing structured session/exercise/set relationship obvious and fast in the UI.
 
 ## Current Priorities
 
+- Proceed to UX Rework 1 as a UI workflow change on top of the current schema: unify date, exercise selection or inline creation, and warmup/working set entry into one compact mobile-first flow.
+- Keep `workout_sets -> workout_sessions -> exercises` as the structured source of truth unless the owner explicitly approves a schema redesign later.
 - Test logout and authenticated exercise create/update/delete behavior with the controlled owner account.
 - Test authenticated workout session creation, warmup/working set entry, and recent history display with the controlled owner account.
 - Configure Vercel environment variables before production deployment.
@@ -187,6 +197,7 @@ This file tracks what has been done, what failed, and what future Codex sessions
 
 ## Next Planned Tasks
 
+- UX Rework 1: redesign the workout entry UI around one flow: choose workout date, choose or create an exercise inline, then add warmup/working sets under that exercise with quick 2.5kg plus/minus weight controls.
 - Test real logout on localhost using the controlled owner account.
 - Test real exercise add, refresh persistence, edit, duplicate-name handling, and safe delete on localhost using the controlled owner account.
 - Test real workout session creation, refresh persistence, warmup set entry, working set entry, invalid set input handling, delete-set behavior, and recent history display on localhost using the controlled owner account.
