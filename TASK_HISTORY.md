@@ -71,6 +71,16 @@ This file tracks what has been done, what failed, and what future Codex sessions
 - 2026-06-20: Stage 2.7 is pending manual SQL execution:
   - The migration SQL has been prepared and reviewed, but the user has not yet reported that it was manually applied in Supabase.
   - Do not claim the live database exists until manual Supabase SQL execution is confirmed.
+- 2026-06-20: Completed Stage 2.7.5 GitHub sync:
+  - Confirmed the local folder is `/Users/stevenjobs/Downloads/personal-training-website-v2`.
+  - Confirmed the current branch is `main`.
+  - Confirmed `origin` points to `https://github.com/stevenjobs530-afk/personal-training-website-v2.git`.
+  - Confirmed there were no unpushed commits before the sync commit; the local worktree contained completed Stage 2 foundation files and documentation updates.
+  - Confirmed `.env.local`, `.env.production`, and `.env` are ignored and were not committed.
+  - Confirmed `.env.example` contains placeholder-only Supabase values.
+  - Verified `npm run lint` and `npm run build` pass before committing.
+  - Committed the completed Stage 2 foundation as `f69ddae chore: sync completed stage 2 foundation`.
+  - Pushed the commit to `origin/main` without force push.
 
 ## Failed Or Abandoned Attempts
 
