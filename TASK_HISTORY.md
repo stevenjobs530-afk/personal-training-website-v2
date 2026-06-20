@@ -172,6 +172,13 @@ This file tracks what has been done, what failed, and what future Codex sessions
   - Did not remove notes from the database, change schema, change auth, or add progress analysis.
   - Verified `npm run lint` and `npm run build` pass.
   - Browser plugin mobile QA failed with the existing sandbox metadata issue, so Playwright fallback captured a 390x844 `/workouts/new` request showing protected redirect to `/login?next=%2Fworkouts%2Fnew`; authenticated mobile form and create-session redirect still require an owner logged-in browser session.
+- 2026-06-20: Completed UX Rework 2 unified exercise picker and inline exercise creation:
+  - Updated `/workouts/[sessionId]` set entry so exercise selection is the first visible step, with the selected exercise passed into structured set creation through the existing `exercise_id` relationship.
+  - Added an inline new-exercise form on the workout session detail page; when no exercises exist, the page shows a friendly first-exercise prompt instead of a dead-end message.
+  - Added `createWorkoutExercise` using the existing `exercises` table, current authenticated user, duplicate-name validation behavior, and current session ownership check before inserting.
+  - Did not add tables, change schema, change auth, or duplicate exercise data intentionally.
+  - Verified `npm run lint` and `npm run build` pass.
+  - Verified signed-out `/workouts/test-session-id` still redirects to `/login?next=%2Fworkouts%2Ftest-session-id`; authenticated no-exercise/existing-exercise/select-before-set flows still require an owner logged-in browser session.
 
 ## Failed Or Abandoned Attempts
 

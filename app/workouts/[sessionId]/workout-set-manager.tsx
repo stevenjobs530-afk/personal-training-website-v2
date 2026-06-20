@@ -2,6 +2,7 @@
 
 import { useActionState, useEffect, useMemo, useRef, useState } from "react";
 import {
+  createWorkoutExercise,
   createWorkoutSet,
   deleteWorkoutSet,
   type WorkoutActionState,
@@ -91,21 +92,84 @@ function groupSetsByExercise(sets: SessionSet[]) {
   }));
 }
 
+function InlineExerciseForm({
+  onCreated,
+  sessionId,
+}: {
+  onCreated: (exerciseId: string) => void;
+  sessionId: string;
+}) {
+  const [state, formAction, pending] = useActionState(
+    createWorkoutExercise,
+    initialActionState,
+  );
+  const formRef = useRef<HTMLFormElement>(null);
+
+  useEffect(() => {
+    if (state.status === "success") {
+      formRef.current?.reset();
+
+      if (state.createdExerciseId) {
+        onCreated(state.createdExerciseId);
+      }
+    }
+  }, [onCreated, state]);
+
+  return (
+    <form
+      ref={formRef}
+      action={formAction}
+      className="space-y-3 rounded-md border border-[var(--border)] bg-white p-3"
+    >
+      <input name="session_id" type="hidden" value={sessionId} />
+      <div className="space-y-2">
+        <label
+          className="text-sm font-semibold text-[var(--foreground)]"
+          htmlFor="new-workout-exercise-name"
+        >
+          New exercise
+        </label>
+        <input
+          className="min-h-12 w-full rounded-md border border-[var(--border)] bg-white px-3 text-base outline-none focus:border-[var(--accent)] disabled:bg-[var(--surface-strong)]"
+          disabled={pending}
+          id="new-workout-exercise-name"
+          name="name"
+          placeholder="Exercise or machine name"
+          required
+          type="text"
+        />
+      </div>
+      <ActionMessage state={state} />
+      <button
+        className="min-h-11 w-full rounded-md border border-[var(--accent)] bg-white px-4 text-sm font-bold text-[var(--accent)] disabled:cursor-not-allowed disabled:border-[var(--border)] disabled:text-[var(--muted)]"
+        disabled={pending}
+        type="submit"
+      >
+        {pending ? "Adding..." : "Add exercise"}
+      </button>
+    </form>
+  );
+}
+
 function AddSetForm({
-  exercises,
+  exerciseId,
+  exerciseName,
   sessionId,
   sets,
-}: WorkoutSetManagerProps) {
-  const firstExerciseId = exercises[0]?.id ?? "";
-  const [selectedExerciseId, setSelectedExerciseId] = useState(firstExerciseId);
+}: {
+  exerciseId: string;
+  exerciseName: string;
+  sessionId: string;
+  sets: SessionSet[];
+}) {
   const [state, formAction, pending] = useActionState(
     createWorkoutSet,
     initialActionState,
   );
   const formRef = useRef<HTMLFormElement>(null);
   const nextSetNumber = useMemo(
-    () => getNextSetNumber(sets, selectedExerciseId),
-    [selectedExerciseId, sets],
+    () => getNextSetNumber(sets, exerciseId),
+    [exerciseId, sets],
   );
 
   useEffect(() => {
@@ -114,14 +178,6 @@ function AddSetForm({
     }
   }, [state]);
 
-  if (!exercises.length) {
-    return (
-      <div className="rounded-md border border-dashed border-[var(--border)] bg-[var(--surface)] p-5 text-base leading-7 text-[var(--muted)]">
-        Add an exercise before recording sets.
-      </div>
-    );
-  }
-
   return (
     <form
       ref={formRef}
@@ -129,30 +185,11 @@ function AddSetForm({
       className="space-y-4 rounded-md border border-[var(--border)] bg-[var(--surface)] p-4"
     >
       <input name="session_id" type="hidden" value={sessionId} />
+      <input name="exercise_id" type="hidden" value={exerciseId} />
 
-      <div className="space-y-2">
-        <label
-          className="text-sm font-semibold text-[var(--foreground)]"
-          htmlFor="exercise-id"
-        >
-          Exercise
-        </label>
-        <select
-          className="min-h-12 w-full rounded-md border border-[var(--border)] bg-white px-3 text-base outline-none focus:border-[var(--accent)] disabled:bg-[var(--surface-strong)]"
-          disabled={pending}
-          id="exercise-id"
-          name="exercise_id"
-          onChange={(event) => setSelectedExerciseId(event.target.value)}
-          required
-          value={selectedExerciseId}
-        >
-          {exercises.map((exercise) => (
-            <option key={exercise.id} value={exercise.id}>
-              {exercise.name}
-            </option>
-          ))}
-        </select>
-      </div>
+      <p className="rounded-md bg-[var(--surface-strong)] px-3 py-2 text-sm font-semibold text-[var(--foreground)]">
+        Adding sets for {exerciseName}
+      </p>
 
       <fieldset className="grid grid-cols-2 gap-2">
         <legend className="sr-only">Set kind</legend>
@@ -191,7 +228,7 @@ function AddSetForm({
             className="min-h-12 w-full rounded-md border border-[var(--border)] bg-white px-3 text-base outline-none focus:border-[var(--accent)] disabled:bg-[var(--surface-strong)]"
             disabled={pending}
             id="set-number"
-            key={`${selectedExerciseId}-${nextSetNumber}`}
+            key={`${exerciseId}-${nextSetNumber}`}
             min="1"
             name="set_number"
             required
@@ -267,6 +304,87 @@ function AddSetForm({
         {pending ? "Adding..." : "Add set"}
       </button>
     </form>
+  );
+}
+
+function WorkoutSetEntry({
+  exercises,
+  sessionId,
+  sets,
+}: WorkoutSetManagerProps) {
+  const [selectedExerciseId, setSelectedExerciseId] = useState(
+    exercises[0]?.id ?? "",
+  );
+  const selectedExercise =
+    exercises.find((exercise) => exercise.id === selectedExerciseId) ??
+    exercises[0];
+  const activeExerciseId = selectedExercise?.id ?? "";
+  const activeExerciseName = selectedExercise?.name ?? "";
+
+  if (!exercises.length) {
+    return (
+      <div className="space-y-4 rounded-md border border-dashed border-[var(--border)] bg-[var(--surface)] p-4">
+        <div className="space-y-2">
+          <h3 className="text-lg font-bold text-[var(--foreground)]">
+            Add your first exercise
+          </h3>
+          <p className="text-sm leading-6 text-[var(--muted)]">
+            Create one here, then add warmup and working sets under it.
+          </p>
+        </div>
+        <InlineExerciseForm
+          onCreated={setSelectedExerciseId}
+          sessionId={sessionId}
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      <section className="space-y-3 rounded-md border border-[var(--border)] bg-[var(--surface)] p-4">
+        <div className="space-y-2">
+          <label
+            className="text-sm font-semibold text-[var(--foreground)]"
+            htmlFor="exercise-id"
+          >
+            Exercise
+          </label>
+          <select
+            className="min-h-12 w-full rounded-md border border-[var(--border)] bg-white px-3 text-base outline-none focus:border-[var(--accent)]"
+            id="exercise-id"
+            onChange={(event) => setSelectedExerciseId(event.target.value)}
+            required
+            value={activeExerciseId}
+          >
+            {exercises.map((exercise) => (
+              <option key={exercise.id} value={exercise.id}>
+                {exercise.name}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <details>
+          <summary className="flex min-h-11 cursor-pointer items-center text-sm font-bold text-[var(--accent)]">
+            New exercise
+          </summary>
+          <div className="pt-2">
+            <InlineExerciseForm
+              onCreated={setSelectedExerciseId}
+              sessionId={sessionId}
+            />
+          </div>
+        </details>
+      </section>
+
+      <AddSetForm
+        exerciseId={activeExerciseId}
+        exerciseName={activeExerciseName}
+        sessionId={sessionId}
+        sets={sets}
+      />
+    </div>
   );
 }
 
@@ -376,7 +494,11 @@ export function WorkoutSetManager({
             {sets.length} saved
           </span>
         </div>
-        <AddSetForm exercises={exercises} sessionId={sessionId} sets={sets} />
+        <WorkoutSetEntry
+          exercises={exercises}
+          sessionId={sessionId}
+          sets={sets}
+        />
       </section>
 
       <section className="space-y-3">

@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase/server";
 export type WorkoutActionState = {
   status: "idle" | "success" | "error";
   message: string;
+  createdExerciseId?: string;
 };
 
 const setKinds = ["warmup", "working"] as const;
@@ -91,6 +92,18 @@ function getSetErrorMessage(error: DatabaseError) {
   }
 
   return "The set could not be saved. Try again.";
+}
+
+function getExerciseErrorMessage(error: DatabaseError) {
+  if (error.code === "23505" || error.message?.includes("exercises_user_name_unique")) {
+    return "An exercise with this name already exists.";
+  }
+
+  if (error.code === "23514") {
+    return "Enter an exercise or machine name.";
+  }
+
+  return "The exercise could not be saved. Try again.";
 }
 
 function parsePositiveInteger(value: string) {
@@ -252,6 +265,74 @@ export async function createWorkoutSet(
   return {
     status: "success",
     message: "Set added.",
+  };
+}
+
+export async function createWorkoutExercise(
+  _previousState: WorkoutActionState,
+  formData: FormData,
+): Promise<WorkoutActionState> {
+  const sessionId = getTrimmedValue(formData, "session_id");
+  const name = getTrimmedValue(formData, "name");
+
+  if (!sessionId) {
+    return {
+      status: "error",
+      message: "Open a workout session before adding exercises.",
+    };
+  }
+
+  if (!name) {
+    return {
+      status: "error",
+      message: "Enter an exercise or machine name.",
+    };
+  }
+
+  const context = await getActionContext();
+
+  if (!context.ok) {
+    return context.state;
+  }
+
+  const { data: session, error: sessionError } = await context.supabase
+    .from("workout_sessions")
+    .select("id")
+    .eq("id", sessionId)
+    .eq("user_id", context.userId)
+    .maybeSingle();
+
+  if (sessionError || !session) {
+    return {
+      status: "error",
+      message: "Open a workout session before adding exercises.",
+    };
+  }
+
+  const { data, error } = await context.supabase
+    .from("exercises")
+    .insert({
+      user_id: context.userId,
+      name,
+      notes: null,
+    })
+    .select("id")
+    .single();
+
+  if (error) {
+    return {
+      status: "error",
+      message: getExerciseErrorMessage(error),
+    };
+  }
+
+  revalidatePath("/exercises");
+  revalidatePath(`/workouts/${sessionId}`);
+
+  return {
+    status: "success",
+    message: "Exercise added.",
+    createdExerciseId: data.id,
   };
 }
 
