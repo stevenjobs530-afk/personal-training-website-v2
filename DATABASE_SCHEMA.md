@@ -64,7 +64,8 @@ Fields:
 
 Recommended constraints:
 
-- unique exercise name per user, for example `unique (user_id, lower(name))` via an expression index
+- unique exercise name per user via a `lower(btrim(name))` expression index
+- exercise names should not be blank after trimming whitespace
 
 Relationships:
 
@@ -133,7 +134,17 @@ Relationships:
 RLS expectation:
 
 - user can access only rows where `user_id = auth.uid()`
-- future policies or triggers should ensure `session_id` and `exercise_id` also belong to the same user
+- the Stage 2.5 migration includes a trigger to ensure `session_id` and `exercise_id` belong to the same `user_id`
+
+## Migration Support Objects
+
+The Stage 2.5 migration adds:
+
+- `public.set_updated_at()` trigger function to maintain `updated_at` on updates
+- `public.validate_workout_set_ownership()` trigger function to prevent `workout_sets` from referencing another user's session or exercise
+- indexes on user-owned and foreign key columns used by RLS, joins, and cascades
+- `grant select, insert, update, delete` for the `authenticated` role only
+- explicit `revoke all` from `anon` on the Version 1 user-data tables
 
 ## Workout History Storage
 

@@ -15,6 +15,62 @@ This file tracks what has been done, what failed, and what future Codex sessions
   - `ROADMAP.md`
 - 2026-06-20: Renamed the local Version 2 folder to `/Users/stevenjobs/Downloads/personal-training-website-v2`.
 - 2026-06-20: Created and pushed the private GitHub repository `stevenjobs530-afk/personal-training-website-v2`.
+- 2026-06-20: Completed Stage 2.0 preflight audit:
+  - Read the required project documentation and uploaded Stage 2 plan.
+  - Confirmed the repository contained documentation only, with no existing Next.js implementation to preserve.
+  - Confirmed Git was clean on `main` and aligned with `origin/main` before app scaffolding.
+- 2026-06-20: Completed Stage 2.1 Next.js App Router skeleton:
+  - Added `package.json`, `package-lock.json`, Next.js, TypeScript, ESLint, Tailwind/PostCSS configuration, and the root `app/` structure.
+  - Added route placeholders for `/login`, `/dashboard`, `/workouts`, `/workouts/new`, `/exercises`, `/progress`, and `/settings`.
+  - Added a simple mobile-first app shell with large touch targets and bottom navigation on mobile.
+  - Added lightweight icon handling for `/icon.svg` and `/favicon.ico`.
+  - Installed dependencies and resolved a toolchain issue by using ESLint 9.x with `eslint-config-next` 16.
+  - Added a `postcss` override to resolve the npm audit issue reported through Next.js dependencies.
+  - Verified `npm run lint`, `npm run build`, and `npm audit --audit-level=moderate` all pass.
+  - Verified rendered desktop and mobile placeholders through local production-mode Playwright checks.
+- 2026-06-20: Completed Stage 2.2 Supabase environment and client foundation:
+  - Added `@supabase/ssr` and `@supabase/supabase-js`.
+  - Added browser and server Supabase client helpers under `lib/supabase/`.
+  - Added `.env.example` with placeholder-only `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`.
+  - Confirmed `.env.local` remains ignored through the existing `.env.*` rule.
+  - Documented that Version 2 uses the current publishable key convention instead of the legacy anon key by default.
+  - Did not add login UI behavior, public signup, database tables, migrations, or workout logging.
+- 2026-06-20: Completed Stage 2.3 login-only Supabase Auth implementation:
+  - Added a mobile-friendly `/login` form for email/password login using a Server Action and `supabase.auth.signInWithPassword()`.
+  - Added root `proxy.ts` plus `lib/supabase/proxy.ts` to refresh Supabase SSR cookies and redirect protected routes.
+  - Added server-side `requireAuth()` checks to `/dashboard`, `/workouts`, `/workouts/new`, `/exercises`, `/progress`, and `/settings`.
+  - Added a logout Server Action that calls Supabase sign out for the current browser session and redirects to `/login`.
+  - Kept Version 1 login-only: no signup form, signup link, magic-link-first login, custom password system, or service role key.
+  - Verified `npm run lint`, `npm run build`, and `npm audit --audit-level=moderate` pass.
+  - With no local Supabase env configured, verified protected routes fail closed to `/login?next=...` and `/login` renders with a safe setup message.
+  - Real credential login/logout could not be tested locally because `.env.local` is not configured in this workspace.
+- 2026-06-20: Completed Stage 2.4 auth verification and manual setup notes:
+  - Reviewed the auth implementation and confirmed it uses one Supabase SSR/cookie-based auth pattern.
+  - Confirmed there is no public signup route, signup form, signup link, or magic-link-first login flow.
+  - Confirmed no service role key is used in frontend code or setup documentation.
+  - Confirmed `.env.local`, `.env.production`, and `.env` are ignored by `.gitignore`.
+  - Confirmed protected routes are guarded by root `proxy.ts` and per-page server-side `requireAuth()` calls.
+  - Added `SUPABASE_SETUP.md` with placeholder-only local, Vercel, Supabase Auth, redirect URL, owner account, and manual browser test notes.
+  - Updated `README.md` to reflect the current Stage 2 auth foundation and point to `SUPABASE_SETUP.md`.
+  - Verified `npm run lint`, `npm run build`, and `npm audit --audit-level=moderate` pass.
+- 2026-06-20: Completed Stage 2.5 Supabase migration file creation:
+  - Added `supabase/migrations/202606200001_create_v1_schema_and_rls.sql`.
+  - Migration includes `profiles`, `exercises`, `workout_sessions`, and `workout_sets`.
+  - Migration enables Row Level Security on every Version 1 user-data table.
+  - Migration adds per-operation RLS policies using `id = auth.uid()` for `profiles` and `user_id = auth.uid()` for user-owned workout tables.
+  - Migration adds constraints for set kind, non-negative weight and reps, positive set number, non-blank exercise names, and unique set numbering per session/exercise.
+  - Migration adds timestamp triggers, ownership validation for workout set session/exercise references, authenticated grants, anon revokes, and useful indexes.
+  - Updated `DATABASE_SCHEMA.md` to match the final migration support objects and concrete exercise-name uniqueness behavior.
+  - No live Supabase database was changed.
+- 2026-06-20: Completed Stage 2.6 manual migration review:
+  - Read all migration files under `supabase/migrations/`.
+  - Compared the SQL against `DATABASE_SCHEMA.md`.
+  - Confirmed RLS is enabled and policies restrict access by `auth.uid()`.
+  - Confirmed no old test data import, service role key, secret, token, cookie, public profile, team, social, payment, media, AI, or analytics table appears in the migration.
+  - Review status: safe to apply manually in Supabase SQL Editor after selecting the correct Version 2 project.
+- 2026-06-20: Stage 2.7 is pending manual SQL execution:
+  - The migration SQL has been prepared and reviewed, but the user has not yet reported that it was manually applied in Supabase.
+  - Do not claim the live database exists until manual Supabase SQL execution is confirmed.
 
 ## Failed Or Abandoned Attempts
 
@@ -27,23 +83,18 @@ This file tracks what has been done, what failed, and what future Codex sessions
 - Authentication design must be handled carefully before implementation.
 - Localhost browser behavior can differ from real iPhone/iPad/macOS production usage.
 - Old test data in Supabase should not be treated as valuable production data.
-- The database schema and RLS policies still need to be implemented and verified.
+- The database schema and RLS migration files are prepared and reviewed, but still need to be manually applied and verified in Supabase.
 
 ## Current Priorities
 
-- Approve the documentation structure.
-- Confirm the Version 1 architecture.
-- Confirm the authentication flow before writing app code.
-- Confirm the initial database schema and RLS plan before creating tables.
+- Manually apply the reviewed migration SQL in the correct Supabase Version 2 project.
+- Configure Supabase Auth settings and local/production environment variables for real login testing.
+- Test login, logout, and protected-route behavior with the controlled owner account.
 
 ## Next Planned Tasks
 
-- Create the actual Next.js App Router project structure.
-- Add Supabase SSR auth helpers using the current recommended package.
-- Implement a login-only email/password flow.
-- Implement logout behavior and reliable session persistence.
-- Implement protected routes.
-- Create Supabase SQL migration files for the planned schema and RLS policies.
+- Report back after the Stage 2 migration SQL has been manually applied in Supabase.
+- Test real login/logout on localhost and production once Supabase environment variables are configured.
 - Build the mobile-first workout entry MVP.
 
 ## Things To Avoid Repeating
