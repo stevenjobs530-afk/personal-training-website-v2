@@ -10,15 +10,18 @@ This repository has a Next.js App Router app, login-only Supabase Auth foundatio
 
 The migration has been applied and verified in the selected existing Supabase project. Local Supabase environment variables are configured in ignored `.env.local`; Vercel environment variables still need to be configured outside Git before production testing.
 
-Stage 3 workout logging MVP code is implemented locally:
+Stage 3 workout logging MVP code is implemented locally, and Stage 4 UX Rework has simplified the workout entry flow:
 
 - exercise and machine management
 - workout session creation by date
-- warmup and working set entry
+- exercise selection during workout entry
+- inline exercise creation from a workout session when needed
+- warmup and working set entry under the selected exercise
+- quick weight and reps controls with manual input still available
 - recent workout history from sessions, exercises, and sets
 - protected route redirects for signed-out visitors
 
-The authenticated owner workflow still needs final manual browser QA on this machine before claiming the MVP is fully verified. Production readiness also still requires Vercel environment variables and production auth URL testing.
+The authenticated owner workflow still needs final manual browser QA on this machine before claiming the reworked Version 1 flow is fully verified. Production readiness also still requires Vercel environment variables and production auth URL testing.
 
 See `SUPABASE_SETUP.md` for placeholder-only manual setup notes.
 
