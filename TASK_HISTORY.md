@@ -188,6 +188,14 @@ This file tracks what has been done, what failed, and what future Codex sessions
   - Did not store structured set data in workout notes and did not change schema.
   - Verified `npm run lint` and `npm run build` pass.
   - Verified signed-out `/workouts` and `/workouts/test-session-id` still redirect to login; authenticated add-set sequence and recent-history persistence still require an owner logged-in browser session.
+- 2026-06-20: Completed UX Rework 4 weight and reps stepper controls:
+  - Replaced the weight-specific stepper with a reusable number stepper used by both weight and reps.
+  - Weight remains submitted as the existing `weight` numeric form field in kg, with 2.5kg minus/plus controls and manual decimal input.
+  - Reps remain submitted as the existing `reps` form field, with step-1 minus/plus controls and manual input.
+  - Stepper buttons clamp at 0, inputs keep `min="0"`, and the existing server action still rejects negative weight or reps.
+  - Kept iPhone-sized large touch controls and did not add settings, schema changes, or new tables.
+  - Verified `npm run lint` and `npm run build` pass.
+  - Browser plugin QA still fails with the known sandbox metadata issue, so Playwright fallback verified signed-out `/workouts/test-session-id` redirects to login; authenticated warmup/working submit tests still require an owner logged-in browser session.
 
 ## Failed Or Abandoned Attempts
 

@@ -41,6 +41,7 @@ const initialActionState: WorkoutActionState = {
   message: "",
 };
 const weightStep = 2.5;
+const repsStep = 1;
 
 function ActionMessage({ state }: { state: WorkoutActionState }) {
   if (!state.message) {
@@ -107,36 +108,65 @@ function groupSetsByExercise(sets: SessionSet[]) {
   }));
 }
 
-function formatWeight(value: number) {
+function formatStepperValue(value: number, valueKind: "decimal" | "integer") {
+  if (valueKind === "integer") {
+    return String(Math.round(value));
+  }
+
   return Number.isInteger(value) ? String(value) : String(Number(value.toFixed(2)));
 }
 
-function WeightStepper({
+function NumberStepper({
   defaultValue,
   disabled,
+  decrementLabel,
   id,
+  incrementLabel,
+  inputMode,
+  name,
+  placeholder,
+  step,
+  valueKind,
 }: {
   defaultValue: string;
   disabled: boolean;
+  decrementLabel: string;
   id: string;
+  incrementLabel: string;
+  inputMode: "decimal" | "numeric";
+  name: string;
+  placeholder: string;
+  step: number;
+  valueKind: "decimal" | "integer";
 }) {
-  const [weight, setWeight] = useState(defaultValue);
+  const [value, setValue] = useState(defaultValue);
 
-  function adjustWeight(delta: number) {
-    setWeight((currentWeight) => {
-      const currentNumber = Number(currentWeight);
+  function adjustValue(delta: number) {
+    setValue((currentValue) => {
+      const currentNumber = Number(currentValue);
       const safeCurrent = Number.isFinite(currentNumber) ? currentNumber : 0;
-      return formatWeight(Math.max(0, safeCurrent + delta));
+      return formatStepperValue(Math.max(0, safeCurrent + delta), valueKind);
     });
+  }
+
+  function handleChange(nextValue: string) {
+    const nextNumber = Number(nextValue);
+
+    if (Number.isFinite(nextNumber) && nextNumber < 0) {
+      setValue("0");
+      return;
+    }
+
+    setValue(nextValue);
   }
 
   return (
     <div className="grid grid-cols-[minmax(44px,auto)_1fr_minmax(44px,auto)] overflow-hidden rounded-md border border-[var(--border)] bg-white">
       <button
-        aria-label="Decrease weight by 2.5kg"
+        aria-label={decrementLabel}
         className="min-h-12 border-r border-[var(--border)] px-3 text-lg font-bold text-[var(--accent)] disabled:cursor-not-allowed disabled:text-[var(--muted)]"
         disabled={disabled}
-        onClick={() => adjustWeight(-weightStep)}
+        onClick={() => adjustValue(-step)}
         type="button"
       >
         -
@@ -145,21 +175,21 @@ function WeightStepper({
         className="min-h-12 w-full border-0 bg-white px-3 text-center text-base outline-none disabled:bg-[var(--surface-strong)]"
         disabled={disabled}
         id={id}
-        inputMode="decimal"
+        inputMode={inputMode}
         min="0"
-        name="weight"
-        onChange={(event) => setWeight(event.target.value)}
-        placeholder="0"
+        name={name}
+        onChange={(event) => handleChange(event.target.value)}
+        placeholder={placeholder}
         required
-        step={weightStep}
+        step={step}
         type="number"
-        value={weight}
+        value={value}
       />
       <button
-        aria-label="Increase weight by 2.5kg"
+        aria-label={incrementLabel}
         className="min-h-12 border-l border-[var(--border)] px-3 text-lg font-bold text-[var(--accent)] disabled:cursor-not-allowed disabled:text-[var(--muted)]"
         disabled={disabled}
-        onClick={() => adjustWeight(weightStep)}
+        onClick={() => adjustValue(step)}
         type="button"
       >
         +
@@ -329,11 +359,18 @@ function AddSetForm({
           >
             Weight
           </label>
-          <WeightStepper
+          <NumberStepper
             key={`${fieldResetKey}-${defaultWeight}`}
             defaultValue={defaultWeight}
+            decrementLabel="Decrease weight by 2.5kg"
             disabled={pending}
             id="weight"
+            incrementLabel="Increase weight by 2.5kg"
+            inputMode="decimal"
+            name="weight"
+            placeholder="0"
+            step={weightStep}
+            valueKind="decimal"
           />
         </div>
 
@@ -344,18 +381,18 @@ function AddSetForm({
           >
             Reps
           </label>
-          <input
-            className="min-h-12 w-full rounded-md border border-[var(--border)] bg-white px-3 text-base outline-none focus:border-[var(--accent)] disabled:bg-[var(--surface-strong)]"
+          <NumberStepper
+            key={`${fieldResetKey}-${defaultReps}`}
             defaultValue={defaultReps}
+            decrementLabel="Decrease reps by 1"
             disabled={pending}
             id="reps"
-            key={`${fieldResetKey}-${defaultReps}`}
-            min="0"
+            incrementLabel="Increase reps by 1"
+            inputMode="numeric"
             name="reps"
             placeholder="10"
-            required
-            step="1"
-            type="number"
+            step={repsStep}
+            valueKind="integer"
           />
         </div>
       </div>
