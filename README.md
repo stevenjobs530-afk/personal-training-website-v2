@@ -6,9 +6,19 @@ The app is for personal use only. It may eventually be deployed to a public Verc
 
 ## Current Status
 
-This repository has a Next.js App Router skeleton, login-only Supabase Auth foundation, and Supabase migration files for the Version 1 schema, RLS, and live grants hardening.
+This repository has a Next.js App Router app, login-only Supabase Auth foundation, and Supabase migration files for the Version 1 schema, RLS, and live grants hardening.
 
 The migration has been applied and verified in the selected existing Supabase project. Local Supabase environment variables are configured in ignored `.env.local`; Vercel environment variables still need to be configured outside Git before production testing.
+
+Stage 3 workout logging MVP code is implemented locally:
+
+- exercise and machine management
+- workout session creation by date
+- warmup and working set entry
+- recent workout history from sessions, exercises, and sets
+- protected route redirects for signed-out visitors
+
+The authenticated owner workflow still needs final manual browser QA on this machine before claiming the MVP is fully verified. Production readiness also still requires Vercel environment variables and production auth URL testing.
 
 See `SUPABASE_SETUP.md` for placeholder-only manual setup notes.
 
@@ -21,6 +31,7 @@ Version 1 should be login-only:
 - protected routes
 - reliable session persistence
 - manually or otherwise controlled Supabase account setup
+- personal workout logging after authentication
 
 Do not implement public signup in Version 1. Treat signup as a future possibility only.
 

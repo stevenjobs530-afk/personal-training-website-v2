@@ -34,6 +34,7 @@ Version 1 should include:
 - `/dashboard`
 - `/workouts`
 - `/workouts/new`
+- `/workouts/[sessionId]`
 - `/exercises`
 - `/progress`
 - `/settings`

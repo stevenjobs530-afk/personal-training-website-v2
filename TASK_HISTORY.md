@@ -104,6 +104,60 @@ This file tracks what has been done, what failed, and what future Codex sessions
   - Verified `npm run dev` with `.env.local` configured returns `307` from `/dashboard` to `/login?next=%2Fdashboard` while signed out.
   - Verified `/login` returns `200` locally with `.env.local` configured.
   - Noted that the reused project's URL configuration still points to an old production URL and should be replaced with Version 2 localhost and production URLs before production deployment or email-link/password-reset flows.
+- 2026-06-20: Completed Stage 3.0 readiness review for workout logging:
+  - Confirmed `main` is aligned with `origin/main` at `9ce47e3 chore: verify supabase live setup`.
+  - Confirmed `.env.local` exists locally, is ignored by `.gitignore`, and is not tracked by Git.
+  - Verified `npm run lint` and `npm run build` pass with `.env.local` configured.
+  - Verified unauthenticated local requests to `/dashboard`, `/exercises`, and `/workouts/new` redirect to `/login?next=...`.
+  - The owner reported successfully receiving the password reset flow, setting a new password, and logging in.
+  - Codex did not read, record, or type the owner password and did not inspect browser cookies or tokens.
+  - Existing uncommitted password recovery handling in `app/login/login-form.tsx` was preserved and documented in `AUTH_FLOW.md`.
+- 2026-06-20: Implemented Stage 3.1 exercise management:
+  - Replaced the `/exercises` placeholder with a protected Supabase-backed page that reads the authenticated user's visible `exercises` rows.
+  - Added Server Actions for creating, updating, and deleting exercises; each action rechecks the authenticated Supabase user, writes `user_id` on insert, relies on RLS, and revalidates `/exercises` after mutations.
+  - Added mobile-first add/edit/delete UI with optional notes and large touch targets.
+  - Added safe validation for blank names, duplicate per-user normalized exercise names, missing rows, and delete failures when an exercise is already referenced by workout sets.
+  - Verified `npm run lint` and `npm run build` pass.
+  - Verified signed-out `/exercises` access redirects to `/login?next=%2Fexercises` and renders the login page without app console errors.
+  - Authenticated add/edit/duplicate/delete smoke testing still needs to be completed in the owner's logged-in browser session because Codex could not safely attach to the existing Chrome session and should not handle the owner password.
+- 2026-06-20: Implemented Stage 3.2 workout session basics:
+  - Replaced the `/workouts` placeholder with a protected recent workout session list backed by `workout_sessions`.
+  - Replaced the `/workouts/new` placeholder with a mobile-first session creation form defaulting to today's date and optional notes.
+  - Added a Server Action for creating workout sessions; it rechecks the authenticated Supabase user, writes `user_id`, relies on RLS, revalidates `/workouts`, and redirects to `/workouts/[sessionId]`.
+  - Did not implement workout set entry during the Stage 3.2 step.
+  - Verified `npm run lint` and `npm run build` pass after the Stage 3.2 implementation.
+- 2026-06-20: Implemented Stage 3.3 workout set entry:
+  - Added protected route `/workouts/[sessionId]` for a single workout session.
+  - Added a mobile-first set entry form that uses existing `workout_sessions`, `exercises`, and `workout_sets`.
+  - Each set includes `session_id`, `exercise_id`, `set_number`, `set_kind`, `weight`, `reps`, and optional notes.
+  - Added warmup/working radio controls, exercise selection, sensible next set number per selected exercise, and a recorded set list.
+  - Added Server Actions for creating and deleting workout sets; each action rechecks the authenticated Supabase user, writes `user_id`, filters mutations by user/session, relies on RLS and the existing ownership trigger, and revalidates `/workouts` plus the session detail route.
+  - Added safe validation and error messages for invalid set number, set kind, weight, reps, duplicate per-session/exercise set number, missing session/exercise, and failed deletion.
+  - Updated `AUTH_FLOW.md` and `ROADMAP.md` to document the new protected `/workouts/[sessionId]` route.
+  - Verified `npm run lint` and `npm run build` pass.
+  - Verified signed-out `/workouts`, `/workouts/new`, and `/workouts/[sessionId]` redirect to `/login?next=...`; Playwright CLI confirmed `/workouts/new` renders the login page without app console errors.
+  - Authenticated create-session/add-warmup/add-working/delete-set smoke testing still needs to be completed in the owner's logged-in browser session because Codex could not safely attach to the existing browser session and should not handle the owner password.
+- 2026-06-20: Implemented Stage 3.4 recent workout history:
+  - Updated `/workouts` to show recent workout history from `workout_sessions`, `workout_sets`, and `exercises`.
+  - Recent workout cards now show workout date, session notes, set count, exercise names, ordered sets, warmup/working labels, weight, reps, and set notes.
+  - Updated `/workouts/[sessionId]` recorded set display to group sets by exercise while keeping ordered set rows readable on mobile.
+  - Kept `/progress` as a placeholder and did not add charts, trend analysis, AI, Realtime, or an analytics dashboard.
+  - Verified `npm run lint` and `npm run build` pass.
+  - Signed-out protection remains active for `/workouts`, `/workouts/new`, `/workouts/[sessionId]`, `/dashboard`, and `/exercises`.
+  - Authenticated saved-data history QA still needs to be completed in the owner's logged-in browser session.
+- 2026-06-20: Completed Stage 3.5 code-side mobile workflow QA and GitHub sync prep:
+  - Attempted to use the in-app Browser plugin for full mobile workflow QA, but the local browser runtime failed before navigation with a missing sandbox metadata field.
+  - Fell back to Playwright CLI for signed-out and mobile rendered checks without reading cookies, localStorage, tokens, or owner credentials.
+  - Verified signed-out protected route redirects:
+    - `/dashboard` -> `/login?next=%2Fdashboard`
+    - `/workouts` -> `/login?next=%2Fworkouts`
+    - `/workouts/new` -> `/login?next=%2Fworkouts%2Fnew`
+    - `/workouts/test-session-id` -> `/login?next=%2Fworkouts%2Ftest-session-id`
+    - `/exercises` -> `/login?next=%2Fexercises`
+  - Verified a 390x844 mobile viewport for `/workouts/new` redirects to the Login page, renders readable content, and has no console errors or warnings beyond normal development-only tooling messages.
+  - Verified `.env.local` remains ignored and untracked.
+  - Verified `npm run lint` and `npm run build` pass after Stage 3.4/3.5 updates.
+  - Full authenticated workflow QA still needs owner manual confirmation: login, add exercise, create session, add warmup set, add working set, view recent history, logout, and confirm protected routes are blocked again.
 
 ## Failed Or Abandoned Attempts
 
@@ -118,20 +172,26 @@ This file tracks what has been done, what failed, and what future Codex sessions
 - Old test data in Supabase should not be treated as valuable production data.
 - The live database schema, RLS, and table grants are applied and verified in the selected existing Supabase project.
 - The reused Supabase project still contains historical auth users. For strict owner-only personal use, delete or disable old users later, or add an owner allowlist before exposing the app broadly.
-- Real owner-account login/logout still needs browser testing because Codex should not know or type the account password.
+- Authenticated exercise create/update/delete needs manual browser smoke testing in the owner's logged-in session.
+- Authenticated workout session and set create/delete needs manual browser smoke testing in the owner's logged-in session.
+- Authenticated recent history display needs manual browser smoke testing with real saved sets.
+- Real owner-account logout still needs manual browser confirmation because Codex should not know or type the account password.
 - The reused Supabase project's URL configuration still references an old production URL; update it once the Version 2 Vercel URL is ready.
 
 ## Current Priorities
 
-- Test login, logout, and protected-route behavior with the controlled owner account.
+- Test logout and authenticated exercise create/update/delete behavior with the controlled owner account.
+- Test authenticated workout session creation, warmup/working set entry, and recent history display with the controlled owner account.
 - Configure Vercel environment variables before production deployment.
 - Replace old Supabase Auth URL settings with Version 2 localhost and production URLs before production auth testing.
 
 ## Next Planned Tasks
 
-- Test real login/logout on localhost using the controlled owner account.
+- Test real logout on localhost using the controlled owner account.
+- Test real exercise add, refresh persistence, edit, duplicate-name handling, and safe delete on localhost using the controlled owner account.
+- Test real workout session creation, refresh persistence, warmup set entry, working set entry, invalid set input handling, delete-set behavior, and recent history display on localhost using the controlled owner account.
 - Test real login/logout on production once Vercel environment variables and Auth URL settings are configured.
-- Build the mobile-first workout entry MVP.
+- Configure Vercel environment variables and production Auth URL settings before production deployment testing.
 
 ## Things To Avoid Repeating
 

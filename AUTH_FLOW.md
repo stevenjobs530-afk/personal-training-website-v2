@@ -29,6 +29,7 @@ Live Supabase verification on 2026-06-20 found the dashboard-level "Allow new us
 - `/dashboard` protected
 - `/workouts` protected
 - `/workouts/new` protected
+- `/workouts/[sessionId]` protected
 - `/exercises` protected
 - `/progress` protected
 - `/settings` protected
@@ -74,6 +75,14 @@ The login form should:
 
 Stage 2.3 implements login with a Server Action that calls `supabase.auth.signInWithPassword()`. Invalid credentials return a safe generic message. The form includes no signup link or magic-link action.
 
+## Password Recovery Behavior
+
+Password recovery is allowed for the controlled owner account, but it is not a public signup path.
+
+The current `/login` client form can handle a Supabase recovery link that returns with recovery tokens in the URL hash. It sets the temporary recovery session through the Supabase browser client, removes the token hash from the visible URL, lets the owner enter a new password, calls `supabase.auth.updateUser({ password })`, then signs out locally and shows the normal login form again.
+
+Do not print, store, document, or commit recovery URL tokens. If this flow is changed, keep it on the existing login-only auth path unless a new auth decision is documented.
+
 ## Logout Behavior
 
 Logout should:
@@ -91,7 +100,7 @@ All app routes containing private workout data must require authentication.
 
 Protected route checks should be done server-side where possible. Do not trust client-only hiding. Data access must also be protected by Supabase Row Level Security, not only by Next.js route guards.
 
-Stage 2.3 protects `/dashboard`, `/workouts`, `/workouts/new`, `/exercises`, `/progress`, and `/settings` in `proxy.ts`, and each protected page also calls `requireAuth()` server-side. If Supabase environment variables are missing, protected routes fail closed and redirect to `/login`.
+Stage 2.3 protects `/dashboard`, `/workouts`, `/workouts/new`, `/exercises`, `/progress`, and `/settings` in `proxy.ts`, and each protected page also calls `requireAuth()` server-side. The `/workouts` protected prefix also covers `/workouts/[sessionId]`, added in Stage 3.3 for set entry. If Supabase environment variables are missing, protected routes fail closed and redirect to `/login`.
 
 ## Session Persistence
 
