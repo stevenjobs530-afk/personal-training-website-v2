@@ -51,3 +51,15 @@ This file records important project decisions. Add new entries when the project 
 - **Reason:** Accurate recording and stable login are prerequisites for useful progress analysis.
 - **Alternatives considered:** build charts and progress dashboards immediately.
 - **Consequences:** Version 1 stores clean structured data. Progress statistics and charts remain later improvements.
+
+### Decision: Reuse the existing Supabase project for Version 2
+
+- **Reason:** The owner confirmed the existing Supabase project is the intended backend, and old test data is disposable.
+- **Alternatives considered:** create a fresh Supabase project for Version 2.
+- **Consequences:** Do not trust historical rows or historical auth users as production truth. Avoid deleting old data or users unless the owner explicitly approves cleanup.
+
+### Decision: Disable Supabase dashboard-level public signup for Version 1
+
+- **Reason:** Version 1 is login-only and personal-use, and leaving dashboard-level signup enabled would allow API-level signup even without an app signup form.
+- **Alternatives considered:** rely only on hiding signup UI in the app.
+- **Consequences:** Owner accounts must be created manually or through controlled setup. If public signup is ever revisited, update `AUTH_FLOW.md`, `ROADMAP.md`, and this decision log first.

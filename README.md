@@ -6,9 +6,9 @@ The app is for personal use only. It may eventually be deployed to a public Verc
 
 ## Current Status
 
-This repository has a Next.js App Router skeleton, login-only Supabase Auth foundation, and reviewed Supabase migration file for the Version 1 schema and RLS.
+This repository has a Next.js App Router skeleton, login-only Supabase Auth foundation, and Supabase migration files for the Version 1 schema, RLS, and live grants hardening.
 
-The migration has not been confirmed as applied to a live Supabase Version 2 project. Supabase and Vercel environment variables still need to be configured outside Git before real login testing.
+The migration has been applied and verified in the selected existing Supabase project. Local Supabase environment variables are configured in ignored `.env.local`; Vercel environment variables still need to be configured outside Git before production testing.
 
 See `SUPABASE_SETUP.md` for placeholder-only manual setup notes.
 

@@ -20,6 +20,8 @@ The owner account should be created manually in Supabase Auth or through another
 
 Do not implement a public signup form in Version 1.
 
+Live Supabase verification on 2026-06-20 found the dashboard-level "Allow new users to sign up" setting enabled from the reused project. It was turned off for Version 1 so public signup is disabled both in the app UI and in Supabase Auth settings.
+
 ## Planned Routes
 
 - `/login` public login page
@@ -112,6 +114,8 @@ Typical production URL:
 - `https://your-vercel-project.vercel.app/auth/callback`
 
 Do not assume a localhost login test proves iPhone production behavior. Browser sessions can differ between in-app browsers, Chrome, Safari, and Vercel production.
+
+The reused Supabase project still had the old production Site URL and redirect URL during the 2026-06-20 connection check. Email/password login does not require an auth callback redirect, but URL settings should be replaced with the Version 2 localhost and production URLs before production deployment or any email-link/password-reset flow is introduced.
 
 ## Environment Variables
 

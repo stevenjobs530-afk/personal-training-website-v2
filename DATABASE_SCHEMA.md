@@ -146,6 +146,11 @@ The Stage 2.5 migration adds:
 - `grant select, insert, update, delete` for the `authenticated` role only
 - explicit `revoke all` from `anon` on the Version 1 user-data tables
 
+The Stage 2 live verification hardening migration adds:
+
+- an explicit revoke of `truncate`, `references`, and `trigger` from `authenticated` on the Version 1 user-data tables
+- a confirming grant of only `select`, `insert`, `update`, and `delete` to `authenticated`
+
 ## Workout History Storage
 
 Workout history is the combination of:

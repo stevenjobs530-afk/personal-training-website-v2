@@ -68,9 +68,12 @@ This file tracks what has been done, what failed, and what future Codex sessions
   - Confirmed RLS is enabled and policies restrict access by `auth.uid()`.
   - Confirmed no old test data import, service role key, secret, token, cookie, public profile, team, social, payment, media, AI, or analytics table appears in the migration.
   - Review status: safe to apply manually in Supabase SQL Editor after selecting the correct Version 2 project.
-- 2026-06-20: Stage 2.7 is pending manual SQL execution:
-  - The migration SQL has been prepared and reviewed, but the user has not yet reported that it was manually applied in Supabase.
-  - Do not claim the live database exists until manual Supabase SQL execution is confirmed.
+- 2026-06-20: Completed Stage 2.7 live Supabase database application:
+  - Confirmed the selected existing Supabase project is the project the owner wants to reuse.
+  - Applied `supabase/migrations/202606200001_create_v1_schema_and_rls.sql` in Supabase SQL Editor.
+  - Verified `profiles`, `exercises`, `workout_sessions`, and `workout_sets` exist with Row Level Security enabled.
+  - Verified each Version 1 user-data table has four owner-scoped policies for select, insert, update, and delete.
+  - Did not delete old test data or old auth users from the reused Supabase project.
 - 2026-06-20: Completed Stage 2.7.5 GitHub sync:
   - Confirmed the local folder is `/Users/stevenjobs/Downloads/personal-training-website-v2`.
   - Confirmed the current branch is `main`.
@@ -81,6 +84,26 @@ This file tracks what has been done, what failed, and what future Codex sessions
   - Verified `npm run lint` and `npm run build` pass before committing.
   - Committed the completed Stage 2 foundation as `f69ddae chore: sync completed stage 2 foundation`.
   - Pushed the commit to `origin/main` without force push.
+- 2026-06-20: Completed Stage 2.8 final Stage 2 foundation review:
+  - Confirmed the Next.js App Router project structure, TypeScript config, Tailwind/PostCSS styling foundation, Supabase SSR/browser client helpers, login-only auth, logout action, protected routes, placeholder-only env example, and migration file are present.
+  - Confirmed no public signup implementation, second auth pattern, service role key, local-only environment file, analytics/chart feature, or workout logging implementation was found.
+  - Confirmed the migration file includes `profiles`, `exercises`, `workout_sessions`, `workout_sets`, and RLS policies for each table.
+  - Verified `.env.local`, `.env.production`, and `.env` are ignored by `.gitignore`.
+  - Verified `npm run lint`, `npm run build`, and `npm audit --audit-level=moderate` pass.
+  - Verified a production-mode local smoke test redirects unauthenticated protected routes to `/login?next=...` when Supabase environment variables are absent.
+  - Final review result: local Stage 2 foundation is coherent, but live Supabase migration application and real owner-account login/logout testing still need manual confirmation before workout logging can safely begin.
+- 2026-06-20: Completed live Supabase connection hardening and local env setup:
+  - Added `supabase/migrations/202606200002_harden_v1_table_grants.sql`.
+  - Applied the grants hardening migration in Supabase SQL Editor.
+  - Verified the Version 1 user-data tables grant only `DELETE`, `INSERT`, `SELECT`, and `UPDATE` to `authenticated`, with no `anon` grant rows.
+  - Confirmed Supabase Auth Email provider is enabled and most other providers remain disabled.
+  - Turned off the Supabase Auth dashboard-level "Allow new users to sign up" setting for Version 1.
+  - Confirmed the reused Supabase project still contains historical auth users; no auth users were deleted.
+  - Created ignored local `.env.local` with client-safe Supabase URL and publishable key values only.
+  - Confirmed `.env.local` is ignored by Git.
+  - Verified `npm run dev` with `.env.local` configured returns `307` from `/dashboard` to `/login?next=%2Fdashboard` while signed out.
+  - Verified `/login` returns `200` locally with `.env.local` configured.
+  - Noted that the reused project's URL configuration still points to an old production URL and should be replaced with Version 2 localhost and production URLs before production deployment or email-link/password-reset flows.
 
 ## Failed Or Abandoned Attempts
 
@@ -93,18 +116,21 @@ This file tracks what has been done, what failed, and what future Codex sessions
 - Authentication design must be handled carefully before implementation.
 - Localhost browser behavior can differ from real iPhone/iPad/macOS production usage.
 - Old test data in Supabase should not be treated as valuable production data.
-- The database schema and RLS migration files are prepared and reviewed, but still need to be manually applied and verified in Supabase.
+- The live database schema, RLS, and table grants are applied and verified in the selected existing Supabase project.
+- The reused Supabase project still contains historical auth users. For strict owner-only personal use, delete or disable old users later, or add an owner allowlist before exposing the app broadly.
+- Real owner-account login/logout still needs browser testing because Codex should not know or type the account password.
+- The reused Supabase project's URL configuration still references an old production URL; update it once the Version 2 Vercel URL is ready.
 
 ## Current Priorities
 
-- Manually apply the reviewed migration SQL in the correct Supabase Version 2 project.
-- Configure Supabase Auth settings and local/production environment variables for real login testing.
 - Test login, logout, and protected-route behavior with the controlled owner account.
+- Configure Vercel environment variables before production deployment.
+- Replace old Supabase Auth URL settings with Version 2 localhost and production URLs before production auth testing.
 
 ## Next Planned Tasks
 
-- Report back after the Stage 2 migration SQL has been manually applied in Supabase.
-- Test real login/logout on localhost and production once Supabase environment variables are configured.
+- Test real login/logout on localhost using the controlled owner account.
+- Test real login/logout on production once Vercel environment variables and Auth URL settings are configured.
 - Build the mobile-first workout entry MVP.
 
 ## Things To Avoid Repeating

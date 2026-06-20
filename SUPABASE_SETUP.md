@@ -6,6 +6,14 @@ This app uses Supabase Auth with email and password, `@supabase/ssr`, and cookie
 
 Version 1 is login-only. Do not add public signup, magic-link-first login, service role keys, passwords, cookies, or tokens to this repository.
 
+## Current Live Setup Status
+
+On 2026-06-20, the reviewed Version 1 schema/RLS migration was applied to the existing Supabase project selected by the owner. A follow-up grants hardening migration was also applied so the Version 1 user-data tables grant only normal CRUD access to the `authenticated` role.
+
+Public signup was disabled in Supabase Auth settings. Email/password auth remains enabled. Historical users and old test data from the reused project were not deleted.
+
+A local `.env.local` file was created on this machine with client-safe Supabase values only. It is ignored by Git and must not be committed or pasted into docs.
+
 ## Local Environment
 
 Create a local `.env.local` file in the repository root. This file is ignored by Git.
@@ -43,7 +51,7 @@ Do not add a service role key unless a future server-only feature explicitly nee
 In Supabase Auth settings:
 
 1. Enable Email provider password login.
-2. Keep public signup outside the app for Version 1.
+2. Keep public signup disabled for Version 1.
 3. Create the owner account manually in Supabase Auth or through another controlled setup.
 4. Configure URL settings for local and production usage.
 
@@ -62,6 +70,8 @@ For Vercel preview deployments, add a preview redirect pattern only if preview l
 - `https://*-your-team-or-account-slug.vercel.app/**`
 
 Use exact production URLs where possible. Wildcards are most useful for localhost and preview environments.
+
+The reused project may still contain older Site URL or redirect URL values. Replace those with the Version 2 production URL once the Vercel project is ready.
 
 ## Current Auth Flow
 
