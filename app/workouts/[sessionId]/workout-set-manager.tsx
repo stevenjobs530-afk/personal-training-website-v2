@@ -40,6 +40,7 @@ const initialActionState: WorkoutActionState = {
   status: "idle",
   message: "",
 };
+const weightStep = 2.5;
 
 function ActionMessage({ state }: { state: WorkoutActionState }) {
   if (!state.message) {
@@ -70,6 +71,20 @@ function getNextSetNumber(sets: SessionSet[], exerciseId: string) {
   return highestSetNumber + 1;
 }
 
+function getLatestSetForExercise(sets: SessionSet[], exerciseId: string) {
+  return sets.reduce<SessionSet | null>((latest, set) => {
+    if (set.exerciseId !== exerciseId) {
+      return latest;
+    }
+
+    if (!latest || set.setNumber > latest.setNumber) {
+      return set;
+    }
+
+    return latest;
+  }, null);
+}
+
 function groupSetsByExercise(sets: SessionSet[]) {
   const groups = new Map<string, ExerciseSetGroup>();
 
@@ -90,6 +105,67 @@ function groupSetsByExercise(sets: SessionSet[]) {
       (left, right) => left.setNumber - right.setNumber,
     ),
   }));
+}
+
+function formatWeight(value: number) {
+  return Number.isInteger(value) ? String(value) : String(Number(value.toFixed(2)));
+}
+
+function WeightStepper({
+  defaultValue,
+  disabled,
+  id,
+}: {
+  defaultValue: string;
+  disabled: boolean;
+  id: string;
+}) {
+  const [weight, setWeight] = useState(defaultValue);
+
+  function adjustWeight(delta: number) {
+    setWeight((currentWeight) => {
+      const currentNumber = Number(currentWeight);
+      const safeCurrent = Number.isFinite(currentNumber) ? currentNumber : 0;
+      return formatWeight(Math.max(0, safeCurrent + delta));
+    });
+  }
+
+  return (
+    <div className="grid grid-cols-[minmax(44px,auto)_1fr_minmax(44px,auto)] overflow-hidden rounded-md border border-[var(--border)] bg-white">
+      <button
+        aria-label="Decrease weight by 2.5kg"
+        className="min-h-12 border-r border-[var(--border)] px-3 text-lg font-bold text-[var(--accent)] disabled:cursor-not-allowed disabled:text-[var(--muted)]"
+        disabled={disabled}
+        onClick={() => adjustWeight(-weightStep)}
+        type="button"
+      >
+        -
+      </button>
+      <input
+        className="min-h-12 w-full border-0 bg-white px-3 text-center text-base outline-none disabled:bg-[var(--surface-strong)]"
+        disabled={disabled}
+        id={id}
+        inputMode="decimal"
+        min="0"
+        name="weight"
+        onChange={(event) => setWeight(event.target.value)}
+        placeholder="0"
+        required
+        step={weightStep}
+        type="number"
+        value={weight}
+      />
+      <button
+        aria-label="Increase weight by 2.5kg"
+        className="min-h-12 border-l border-[var(--border)] px-3 text-lg font-bold text-[var(--accent)] disabled:cursor-not-allowed disabled:text-[var(--muted)]"
+        disabled={disabled}
+        onClick={() => adjustWeight(weightStep)}
+        type="button"
+      >
+        +
+      </button>
+    </div>
+  );
 }
 
 function InlineExerciseForm({
@@ -167,10 +243,18 @@ function AddSetForm({
     initialActionState,
   );
   const formRef = useRef<HTMLFormElement>(null);
+  const latestSet = useMemo(
+    () => getLatestSetForExercise(sets, exerciseId),
+    [exerciseId, sets],
+  );
   const nextSetNumber = useMemo(
     () => getNextSetNumber(sets, exerciseId),
     [exerciseId, sets],
   );
+  const defaultSetKind = latestSet?.setKind ?? "warmup";
+  const defaultWeight = latestSet?.weight ?? "";
+  const defaultReps = latestSet ? String(latestSet.reps) : "";
+  const fieldResetKey = `${exerciseId}-${nextSetNumber}`;
 
   useEffect(() => {
     if (state.status === "success") {
@@ -188,15 +272,15 @@ function AddSetForm({
       <input name="exercise_id" type="hidden" value={exerciseId} />
 
       <p className="rounded-md bg-[var(--surface-strong)] px-3 py-2 text-sm font-semibold text-[var(--foreground)]">
-        Adding sets for {exerciseName}
+        Set {nextSetNumber} for {exerciseName}
       </p>
 
-      <fieldset className="grid grid-cols-2 gap-2">
+      <fieldset className="grid grid-cols-2 gap-2" key={`${fieldResetKey}-${defaultSetKind}`}>
         <legend className="sr-only">Set kind</legend>
         <label className="flex min-h-12 items-center justify-center rounded-md border border-[var(--border)] bg-white px-3 text-sm font-bold text-[var(--foreground)] has-[:checked]:border-[var(--accent)] has-[:checked]:bg-[var(--accent-soft)]">
           <input
             className="sr-only"
-            defaultChecked
+            defaultChecked={defaultSetKind === "warmup"}
             disabled={pending}
             name="set_kind"
             type="radio"
@@ -207,6 +291,7 @@ function AddSetForm({
         <label className="flex min-h-12 items-center justify-center rounded-md border border-[var(--border)] bg-white px-3 text-sm font-bold text-[var(--foreground)] has-[:checked]:border-[var(--accent)] has-[:checked]:bg-[var(--accent-soft)]">
           <input
             className="sr-only"
+            defaultChecked={defaultSetKind === "working"}
             disabled={pending}
             name="set_kind"
             type="radio"
@@ -244,16 +329,11 @@ function AddSetForm({
           >
             Weight
           </label>
-          <input
-            className="min-h-12 w-full rounded-md border border-[var(--border)] bg-white px-3 text-base outline-none focus:border-[var(--accent)] disabled:bg-[var(--surface-strong)]"
+          <WeightStepper
+            key={`${fieldResetKey}-${defaultWeight}`}
+            defaultValue={defaultWeight}
             disabled={pending}
             id="weight"
-            min="0"
-            name="weight"
-            placeholder="0"
-            required
-            step="0.25"
-            type="number"
           />
         </div>
 
@@ -266,8 +346,10 @@ function AddSetForm({
           </label>
           <input
             className="min-h-12 w-full rounded-md border border-[var(--border)] bg-white px-3 text-base outline-none focus:border-[var(--accent)] disabled:bg-[var(--surface-strong)]"
+            defaultValue={defaultReps}
             disabled={pending}
             id="reps"
+            key={`${fieldResetKey}-${defaultReps}`}
             min="0"
             name="reps"
             placeholder="10"
@@ -278,21 +360,23 @@ function AddSetForm({
         </div>
       </div>
 
-      <div className="space-y-2">
-        <label
-          className="text-sm font-semibold text-[var(--foreground)]"
-          htmlFor="set-notes"
-        >
-          Notes
-        </label>
-        <textarea
-          className="min-h-20 w-full resize-y rounded-md border border-[var(--border)] bg-white px-3 py-3 text-base outline-none focus:border-[var(--accent)] disabled:bg-[var(--surface-strong)]"
-          disabled={pending}
-          id="set-notes"
-          name="notes"
-          placeholder="Optional set notes"
-        />
-      </div>
+      <details className="rounded-md border border-[var(--border)] bg-white">
+        <summary className="flex min-h-11 cursor-pointer items-center px-3 text-sm font-semibold text-[var(--foreground)]">
+          Optional set notes
+        </summary>
+        <div className="border-t border-[var(--border)] p-3">
+          <label className="sr-only" htmlFor="set-notes">
+            Optional set notes
+          </label>
+          <textarea
+            className="min-h-16 w-full resize-y rounded-md border border-[var(--border)] bg-white px-3 py-3 text-base outline-none focus:border-[var(--accent)] disabled:bg-[var(--surface-strong)]"
+            disabled={pending}
+            id="set-notes"
+            name="notes"
+            placeholder="Anything about this set"
+          />
+        </div>
+      </details>
 
       <ActionMessage state={state} />
 
@@ -301,7 +385,7 @@ function AddSetForm({
         disabled={pending}
         type="submit"
       >
-        {pending ? "Adding..." : "Add set"}
+        {pending ? "Adding..." : nextSetNumber > 1 ? "Add another set" : "Add set"}
       </button>
     </form>
   );

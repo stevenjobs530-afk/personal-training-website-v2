@@ -179,6 +179,15 @@ This file tracks what has been done, what failed, and what future Codex sessions
   - Did not add tables, change schema, change auth, or duplicate exercise data intentionally.
   - Verified `npm run lint` and `npm run build` pass.
   - Verified signed-out `/workouts/test-session-id` still redirects to `/login?next=%2Fworkouts%2Ftest-session-id`; authenticated no-exercise/existing-exercise/select-before-set flows still require an owner logged-in browser session.
+- 2026-06-20: Completed UX Rework 3 faster repeated set entry:
+  - Kept the current structured set fields: `set_number`, `set_kind`, `weight`, `reps`, and optional `notes`.
+  - Kept selected exercise state outside the add-set form so a successful add does not switch away from the current exercise.
+  - Continued automatic next set numbering per selected exercise, and added previous weight/reps defaults for the next set under that same exercise.
+  - Added 2.5kg minus/plus controls around the weight input and changed weight input stepping to 2.5kg.
+  - Kept warmup/working as large toggle controls and made set notes secondary in a collapsible optional section.
+  - Did not store structured set data in workout notes and did not change schema.
+  - Verified `npm run lint` and `npm run build` pass.
+  - Verified signed-out `/workouts` and `/workouts/test-session-id` still redirect to login; authenticated add-set sequence and recent-history persistence still require an owner logged-in browser session.
 
 ## Failed Or Abandoned Attempts
 
@@ -202,8 +211,8 @@ This file tracks what has been done, what failed, and what future Codex sessions
 
 ## Current Priorities
 
-- Proceed to UX Rework 1 as a UI workflow change on top of the current schema: unify date, exercise selection or inline creation, and warmup/working set entry into one compact mobile-first flow.
 - Keep `workout_sets -> workout_sessions -> exercises` as the structured source of truth unless the owner explicitly approves a schema redesign later.
+- Test the completed UX Rework 1-3 flow in an owner logged-in browser session, including inline exercise creation, existing exercise selection, repeated set entry, refresh persistence, and recent history display.
 - Test logout and authenticated exercise create/update/delete behavior with the controlled owner account.
 - Test authenticated workout session creation, warmup/working set entry, and recent history display with the controlled owner account.
 - Configure Vercel environment variables before production deployment.
@@ -211,7 +220,7 @@ This file tracks what has been done, what failed, and what future Codex sessions
 
 ## Next Planned Tasks
 
-- UX Rework 1: redesign the workout entry UI around one flow: choose workout date, choose or create an exercise inline, then add warmup/working sets under that exercise with quick 2.5kg plus/minus weight controls.
+- In an owner logged-in browser session, test the reworked workout flow: create a workout from `/workouts/new`, confirm redirect to `/workouts/[sessionId]`, create/select an exercise, add warmup 39kg x 12, working 52kg x 12, working 52kg x 12, working 52kg x 10, refresh, and confirm `/workouts` recent history groups those sets under the same exercise.
 - Test real logout on localhost using the controlled owner account.
 - Test real exercise add, refresh persistence, edit, duplicate-name handling, and safe delete on localhost using the controlled owner account.
 - Test real workout session creation, refresh persistence, warmup set entry, working set entry, invalid set input handling, delete-set behavior, and recent history display on localhost using the controlled owner account.
