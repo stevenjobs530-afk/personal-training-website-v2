@@ -14,6 +14,7 @@ This file tracks what has been done, what failed, and what future Codex sessions
   - `TASK_HISTORY.md`
   - `ROADMAP.md`
 - 2026-06-20: Renamed the local Version 2 folder to `/Users/stevenjobs/Downloads/personal-training-website-v2`.
+- 2026-06-20: Created and pushed the private GitHub repository `stevenjobs530-afk/personal-training-website-v2`.
 
 ## Failed Or Abandoned Attempts
 
