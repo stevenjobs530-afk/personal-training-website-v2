@@ -1,6 +1,6 @@
 # ROADMAP.md
 
-Last updated: 2026-06-20
+Last updated: 2026-06-23
 
 ## Product Principle
 
@@ -24,6 +24,7 @@ Version 1 should include:
 - record weight and reps
 - add simple notes where useful
 - view recent workout history
+- record aerobic/cardio entries separately from strength sets
 - mobile-friendly layout for iPhone
 - responsive layout for iPad and macOS
 - simple refresh/refetch behavior after changes
@@ -40,6 +41,14 @@ UX Rework 1-5 confirms the Version 1 workout entry flow is now structured enough
 
 Do not add progress charts yet. The next progress stage can derive summaries from `workout_sets` joined to `workout_sessions` and `exercises` after owner logged-in workflow QA confirms live writes and refresh persistence.
 
+Stage 5 adds an Aerobic / Cardio Logging MVP:
+
+- `/cardio` shows recent cardio entries.
+- `/cardio/new` records date, cardio exercise, category for new exercise names, duration, distance, distance unit, optional calories, and optional notes.
+- Cardio data uses `cardio_exercises` and `cardio_entries` rather than `workout_sets`.
+- Pace is display-only when duration and distance are available.
+- This stage does not add charts, AI analysis, Realtime, social features, payments, public profiles, or advanced dashboards.
+
 ## Version 1 Route Candidates
 
 - `/login`
@@ -47,6 +56,8 @@ Do not add progress charts yet. The next progress stage can derive summaries fro
 - `/workouts`
 - `/workouts/new`
 - `/workouts/[sessionId]`
+- `/cardio`
+- `/cardio/new`
 - `/exercises`
 - `/progress`
 - `/settings`
@@ -65,6 +76,7 @@ Later improvements may include:
 - total volume over time
 - weekly training frequency
 - working set trends
+- cardio pace, distance, duration, and frequency trends
 - CSV export
 - optional charts
 - optional PWA improvements

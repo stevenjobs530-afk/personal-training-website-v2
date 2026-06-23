@@ -54,58 +54,78 @@ function AddExerciseForm() {
   }, [state]);
 
   return (
-    <form
-      ref={formRef}
-      action={formAction}
-      className="space-y-4 rounded-md border border-[var(--border)] bg-[var(--surface)] p-4"
-    >
-      <div className="space-y-2">
-        <label
-          className="text-sm font-semibold text-[var(--foreground)]"
-          htmlFor="new-exercise-name"
-        >
-          Exercise or machine
-        </label>
-        <input
-          className="min-h-12 w-full rounded-md border border-[var(--border)] bg-white px-3 text-base outline-none focus:border-[var(--accent)] disabled:bg-[var(--surface-strong)]"
-          id="new-exercise-name"
-          name="name"
-          placeholder="Chest press"
-          required
-          disabled={pending}
-        />
-      </div>
-
-      <div className="space-y-2">
-        <label
-          className="text-sm font-semibold text-[var(--foreground)]"
-          htmlFor="new-exercise-notes"
-        >
-          Notes
-        </label>
-        <textarea
-          className="min-h-24 w-full resize-y rounded-md border border-[var(--border)] bg-white px-3 py-3 text-base outline-none focus:border-[var(--accent)] disabled:bg-[var(--surface-strong)]"
-          id="new-exercise-notes"
-          name="notes"
-          placeholder="Seat height, grip, machine number"
-          disabled={pending}
-        />
-      </div>
-
-      <ActionMessage state={state} />
-
-      <button
-        className="min-h-12 w-full rounded-md bg-[var(--accent)] px-4 text-base font-bold text-white disabled:cursor-not-allowed disabled:bg-[var(--muted)]"
-        type="submit"
-        disabled={pending}
+    <details className="rounded-md border border-[var(--border)] bg-[var(--surface)]">
+      <summary className="flex min-h-12 cursor-pointer items-center justify-between gap-3 px-4 text-sm font-bold text-[var(--foreground)]">
+        <span>Add exercise</span>
+        <span className="text-xs font-semibold uppercase text-[var(--accent)]">
+          New
+        </span>
+      </summary>
+      <form
+        ref={formRef}
+        action={formAction}
+        className="space-y-4 border-t border-[var(--border)] p-4"
       >
-        {pending ? "Adding..." : "Add exercise"}
-      </button>
-    </form>
+        <div className="space-y-2">
+          <label
+            className="text-sm font-semibold text-[var(--foreground)]"
+            htmlFor="new-exercise-name"
+          >
+            Exercise or machine
+          </label>
+          <input
+            className="min-h-12 w-full rounded-md border border-[var(--border)] bg-white px-3 text-base outline-none focus:border-[var(--accent)] disabled:bg-[var(--surface-strong)]"
+            id="new-exercise-name"
+            name="name"
+            placeholder="Chest press"
+            required
+            disabled={pending}
+          />
+        </div>
+
+        <div className="space-y-2">
+          <label
+            className="text-sm font-semibold text-[var(--foreground)]"
+            htmlFor="new-exercise-notes"
+          >
+            Notes
+          </label>
+          <textarea
+            className="min-h-20 w-full resize-y rounded-md border border-[var(--border)] bg-white px-3 py-3 text-base outline-none focus:border-[var(--accent)] disabled:bg-[var(--surface-strong)]"
+            id="new-exercise-notes"
+            name="notes"
+            placeholder="Seat height, grip, machine number"
+            disabled={pending}
+          />
+        </div>
+
+        <ActionMessage state={state} />
+
+        <button
+          className="min-h-12 w-full rounded-md bg-[var(--accent)] px-4 text-base font-bold text-white disabled:cursor-not-allowed disabled:bg-[var(--muted)]"
+          type="submit"
+          disabled={pending}
+        >
+          {pending ? "Adding..." : "Add exercise"}
+        </button>
+      </form>
+    </details>
   );
 }
 
-function ExerciseRow({ exercise }: { exercise: ExerciseListItem }) {
+function getExerciseInitial(name: string) {
+  return name.trim().charAt(0).toUpperCase() || "?";
+}
+
+function getNotePreview(notes: string | null) {
+  if (!notes) {
+    return null;
+  }
+
+  return notes.length > 92 ? `${notes.slice(0, 89)}...` : notes;
+}
+
+function ExerciseCard({ exercise }: { exercise: ExerciseListItem }) {
   const [updateState, updateAction, updatePending] = useActionState(
     updateExercise,
     initialActionState,
@@ -115,75 +135,97 @@ function ExerciseRow({ exercise }: { exercise: ExerciseListItem }) {
     initialActionState,
   );
   const isPending = updatePending || deletePending;
+  const notePreview = getNotePreview(exercise.notes);
 
   return (
-    <li className="rounded-md border border-[var(--border)] bg-[var(--surface)] p-4">
-      <form action={updateAction} className="space-y-4">
-        <input name="id" type="hidden" value={exercise.id} />
-
-        <div className="space-y-2">
-          <label
-            className="text-sm font-semibold text-[var(--foreground)]"
-            htmlFor={`exercise-name-${exercise.id}`}
-          >
-            Name
-          </label>
-          <input
-            className="min-h-12 w-full rounded-md border border-[var(--border)] bg-white px-3 text-base outline-none focus:border-[var(--accent)] disabled:bg-[var(--surface-strong)]"
-            id={`exercise-name-${exercise.id}`}
-            name="name"
-            defaultValue={exercise.name}
-            required
-            disabled={isPending}
-          />
+    <li className="rounded-md border border-[var(--border)] bg-[var(--surface)] p-3 shadow-sm">
+      <div className="flex gap-3">
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md bg-[var(--accent-soft)] text-base font-black text-[var(--accent-strong)]">
+          {getExerciseInitial(exercise.name)}
         </div>
-
-        <div className="space-y-2">
-          <label
-            className="text-sm font-semibold text-[var(--foreground)]"
-            htmlFor={`exercise-notes-${exercise.id}`}
-          >
-            Notes
-          </label>
-          <textarea
-            className="min-h-20 w-full resize-y rounded-md border border-[var(--border)] bg-white px-3 py-3 text-base outline-none focus:border-[var(--accent)] disabled:bg-[var(--surface-strong)]"
-            id={`exercise-notes-${exercise.id}`}
-            name="notes"
-            defaultValue={exercise.notes ?? ""}
-            disabled={isPending}
-          />
+        <div className="min-w-0 flex-1">
+          <h3 className="truncate text-base font-black text-[var(--foreground)]">
+            {exercise.name}
+          </h3>
+          <p className="mt-1 text-sm leading-5 text-[var(--muted)]">
+            {notePreview ?? "No notes yet"}
+          </p>
         </div>
+      </div>
 
-        <ActionMessage state={updateState} />
+      <details className="mt-3 rounded-md bg-[var(--surface-strong)]">
+        <summary className="flex min-h-11 cursor-pointer items-center px-3 text-sm font-bold text-[var(--accent)]">
+          Manage
+        </summary>
+        <div className="space-y-3 border-t border-[var(--border)] p-3">
+          <form action={updateAction} className="space-y-3">
+            <input name="id" type="hidden" value={exercise.id} />
 
-        <button
-          className="min-h-11 w-full rounded-md bg-[var(--accent)] px-4 text-sm font-bold text-white disabled:cursor-not-allowed disabled:bg-[var(--muted)]"
-          type="submit"
-          disabled={isPending}
-        >
-          {updatePending ? "Saving..." : "Save changes"}
-        </button>
-      </form>
+            <div className="space-y-2">
+              <label
+                className="text-sm font-semibold text-[var(--foreground)]"
+                htmlFor={`exercise-name-${exercise.id}`}
+              >
+                Name
+              </label>
+              <input
+                className="min-h-12 w-full rounded-md border border-[var(--border)] bg-white px-3 text-base outline-none focus:border-[var(--accent)] disabled:bg-[var(--surface-strong)]"
+                id={`exercise-name-${exercise.id}`}
+                name="name"
+                defaultValue={exercise.name}
+                required
+                disabled={isPending}
+              />
+            </div>
 
-      <form
-        action={deleteAction}
-        className="mt-3 space-y-3"
-        onSubmit={(event) => {
-          if (!window.confirm(`Delete ${exercise.name}?`)) {
-            event.preventDefault();
-          }
-        }}
-      >
-        <input name="id" type="hidden" value={exercise.id} />
-        <ActionMessage state={deleteState} />
-        <button
-          className="min-h-11 w-full rounded-md border border-red-200 bg-white px-4 text-sm font-bold text-red-700 disabled:cursor-not-allowed disabled:text-[var(--muted)]"
-          type="submit"
-          disabled={isPending}
-        >
-          {deletePending ? "Deleting..." : "Delete"}
-        </button>
-      </form>
+            <div className="space-y-2">
+              <label
+                className="text-sm font-semibold text-[var(--foreground)]"
+                htmlFor={`exercise-notes-${exercise.id}`}
+              >
+                Notes
+              </label>
+              <textarea
+                className="min-h-20 w-full resize-y rounded-md border border-[var(--border)] bg-white px-3 py-3 text-base outline-none focus:border-[var(--accent)] disabled:bg-[var(--surface-strong)]"
+                id={`exercise-notes-${exercise.id}`}
+                name="notes"
+                defaultValue={exercise.notes ?? ""}
+                disabled={isPending}
+              />
+            </div>
+
+            <ActionMessage state={updateState} />
+
+            <button
+              className="min-h-11 w-full rounded-md bg-[var(--accent)] px-4 text-sm font-bold text-white disabled:cursor-not-allowed disabled:bg-[var(--muted)]"
+              type="submit"
+              disabled={isPending}
+            >
+              {updatePending ? "Saving..." : "Save changes"}
+            </button>
+          </form>
+
+          <form
+            action={deleteAction}
+            className="space-y-3"
+            onSubmit={(event) => {
+              if (!window.confirm(`Delete ${exercise.name}?`)) {
+                event.preventDefault();
+              }
+            }}
+          >
+            <input name="id" type="hidden" value={exercise.id} />
+            <ActionMessage state={deleteState} />
+            <button
+              className="min-h-11 w-full rounded-md border border-red-200 bg-white px-4 text-sm font-bold text-red-700 disabled:cursor-not-allowed disabled:text-[var(--muted)]"
+              type="submit"
+              disabled={isPending}
+            >
+              {deletePending ? "Deleting..." : "Delete"}
+            </button>
+          </form>
+        </div>
+      </details>
     </li>
   );
 }
@@ -204,9 +246,9 @@ export function ExerciseManager({ exercises }: ExerciseManagerProps) {
         </div>
 
         {exercises.length ? (
-          <ul className="space-y-3">
+          <ul className="grid gap-3 sm:grid-cols-2">
             {exercises.map((exercise) => (
-              <ExerciseRow
+              <ExerciseCard
                 key={`${exercise.id}-${exercise.name}-${exercise.notes ?? ""}`}
                 exercise={exercise}
               />
@@ -214,7 +256,7 @@ export function ExerciseManager({ exercises }: ExerciseManagerProps) {
           </ul>
         ) : (
           <div className="rounded-md border border-dashed border-[var(--border)] bg-[var(--surface)] p-5 text-base leading-7 text-[var(--muted)]">
-            No exercises saved yet.
+            No exercises saved yet. Add your first machine or movement.
           </div>
         )}
       </section>

@@ -20,8 +20,8 @@ export default async function ExercisesPage() {
     <AppShell>
       <PlaceholderPage
         eyebrow="Exercises"
-        title="Exercise list"
-        description="Save the exercise and machine names you use during workouts."
+        title="Exercise library"
+        description="Scan saved machines and movements quickly. Open Manage only when you need to edit."
       >
         {error ? (
           <div

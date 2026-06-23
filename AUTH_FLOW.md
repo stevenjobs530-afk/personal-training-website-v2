@@ -1,6 +1,6 @@
 # AUTH_FLOW.md
 
-Last updated: 2026-06-20
+Last updated: 2026-06-23
 
 ## Authentication Goal
 
@@ -30,6 +30,8 @@ Live Supabase verification on 2026-06-20 found the dashboard-level "Allow new us
 - `/workouts` protected
 - `/workouts/new` protected
 - `/workouts/[sessionId]` protected
+- `/cardio` protected
+- `/cardio/new` protected
 - `/exercises` protected
 - `/progress` protected
 - `/settings` protected
@@ -100,7 +102,7 @@ All app routes containing private workout data must require authentication.
 
 Protected route checks should be done server-side where possible. Do not trust client-only hiding. Data access must also be protected by Supabase Row Level Security, not only by Next.js route guards.
 
-Stage 2.3 protects `/dashboard`, `/workouts`, `/workouts/new`, `/exercises`, `/progress`, and `/settings` in `proxy.ts`, and each protected page also calls `requireAuth()` server-side. The `/workouts` protected prefix also covers `/workouts/[sessionId]`, added in Stage 3.3 for set entry. If Supabase environment variables are missing, protected routes fail closed and redirect to `/login`.
+Stage 2.3 protects `/dashboard`, `/workouts`, `/workouts/new`, `/exercises`, `/progress`, and `/settings` in `proxy.ts`, and each protected page also calls `requireAuth()` server-side. The `/workouts` protected prefix also covers `/workouts/[sessionId]`, added in Stage 3.3 for set entry. Stage 5 adds the protected `/cardio` prefix, which covers `/cardio` and `/cardio/new`. If Supabase environment variables are missing, protected routes fail closed and redirect to `/login`.
 
 ## Session Persistence
 

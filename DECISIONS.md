@@ -63,3 +63,11 @@ This file records important project decisions. Add new entries when the project 
 - **Reason:** Version 1 is login-only and personal-use, and leaving dashboard-level signup enabled would allow API-level signup even without an app signup form.
 - **Alternatives considered:** rely only on hiding signup UI in the app.
 - **Consequences:** Owner accounts must be created manually or through controlled setup. If public signup is ever revisited, update `AUTH_FLOW.md`, `ROADMAP.md`, and this decision log first.
+
+## 2026-06-23
+
+### Decision: Keep cardio logging separate from strength workout sets
+
+- **Reason:** Strength training sets use weight, reps, set number, and warmup/working kind. Aerobic/cardio work is better represented by duration, distance, distance unit, optional calories, and notes.
+- **Alternatives considered:** reuse `workout_sets` for cardio, add loosely typed notes to strength sessions, or wait for a larger analytics redesign.
+- **Consequences:** Stage 5 adds `cardio_exercises` and `cardio_entries` with their own RLS policies and protected `/cardio` routes. The existing weight-training tables and workout flow remain unchanged.

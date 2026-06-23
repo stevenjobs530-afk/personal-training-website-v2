@@ -1,6 +1,6 @@
 # ARCHITECTURE.md
 
-Last updated: 2026-06-20
+Last updated: 2026-06-23
 
 ## Project Goal
 
@@ -54,6 +54,8 @@ The backend is Supabase:
 - `exercises` stores user-owned exercise or machine names.
 - `workout_sessions` stores workout dates.
 - `workout_sets` stores warmup and working set rows.
+- `cardio_exercises` stores user-owned aerobic/cardio exercise names and categories.
+- `cardio_entries` stores duration, distance, optional calories, and notes for cardio work.
 
 The planned schema is documented in `DATABASE_SCHEMA.md`.
 
@@ -106,6 +108,7 @@ Desktop should support review and maintenance, but iPhone recording speed is the
 - record warmup sets and working sets
 - record weight and reps
 - view recent workout history
+- record aerobic/cardio work separately from strength sets
 - simple refresh/refetch behavior
 - mobile-friendly layout
 
@@ -124,3 +127,12 @@ Desktop should support review and maintenance, but iPhone recording speed is the
 - public signup
 
 These can be revisited only after the core recording and authentication flow is stable.
+
+## Cardio Logging Boundary
+
+Stage 5 adds a separate cardio model for aerobic work such as treadmill running,
+indoor walking, incline walking, stair climber, elliptical, cycling, rowing,
+outdoor running, outdoor walking, and other cardio. Cardio
+entries use duration, distance, distance unit, optional calories, and optional
+notes. They should not be forced into `workout_sets`, because strength sets use
+weight, reps, set number, and warmup/working kind.

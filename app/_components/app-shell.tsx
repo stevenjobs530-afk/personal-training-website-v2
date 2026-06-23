@@ -4,6 +4,7 @@ import { signOut } from "../auth/actions";
 const navItems = [
   { href: "/dashboard", label: "Today" },
   { href: "/workouts", label: "Workouts" },
+  { href: "/cardio", label: "Cardio" },
   { href: "/exercises", label: "Exercises" },
   { href: "/progress", label: "Progress" },
   { href: "/settings", label: "Settings" },
@@ -42,7 +43,7 @@ export function AppShell({ children }: AppShellProps) {
       </main>
 
       <nav className="fixed inset-x-0 bottom-0 border-t border-[var(--border)] bg-[var(--surface)] sm:hidden">
-        <div className="grid grid-cols-5">
+        <div className="grid grid-cols-6">
           {navItems.map((item) => (
             <Link
               key={item.href}

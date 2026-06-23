@@ -5,10 +5,19 @@ import { requireAuth } from "@/lib/auth/require-auth";
 
 export const dynamic = "force-dynamic";
 
-const summaryItems = [
-  { label: "Workout entry", value: "Next stage" },
-  { label: "Recent history", value: "Not built yet" },
-  { label: "Auth guard", value: "Active" },
+const trainingChoices = [
+  {
+    href: "/workouts/new",
+    label: "Strength Training",
+    description: "Weights, machines, warmup sets, working sets, reps.",
+    cta: "Start strength",
+  },
+  {
+    href: "/cardio/new",
+    label: "Cardio",
+    description: "Walking, running, stair climber, elliptical, cycling, rowing.",
+    cta: "Record cardio",
+  },
 ];
 
 export default async function DashboardPage() {
@@ -18,30 +27,28 @@ export default async function DashboardPage() {
     <AppShell>
       <PlaceholderPage
         eyebrow="Dashboard"
-        title="Today placeholder"
-        description="This route is ready for the protected app shell. Supabase authentication and real workout data will be added in later Stage 2 steps."
-        actions={
-          <Link
-            href="/workouts/new"
-            className="inline-flex min-h-12 items-center rounded-md bg-[var(--accent)] px-5 text-base font-bold text-white"
-          >
-            New workout
-          </Link>
-        }
+        title="Choose workout type"
+        description="Pick the training type manually. Strength and Cardio stay separate so each workout is logged in the right format."
       >
-        <div className="grid gap-3 sm:grid-cols-3">
-          {summaryItems.map((item) => (
-            <div
-              key={item.label}
-              className="rounded-md border border-[var(--border)] bg-[var(--surface)] p-4"
+        <div className="grid gap-3 sm:grid-cols-2">
+          {trainingChoices.map((choice) => (
+            <Link
+              className="flex min-h-40 flex-col justify-between rounded-md border border-[var(--border)] bg-[var(--surface)] p-4 shadow-sm hover:border-[var(--accent)]"
+              href={choice.href}
+              key={choice.href}
             >
-              <p className="text-sm font-semibold text-[var(--muted)]">
-                {item.label}
-              </p>
-              <p className="mt-2 text-xl font-bold text-[var(--foreground)]">
-                {item.value}
-              </p>
-            </div>
+              <div className="space-y-2">
+                <h2 className="text-xl font-black text-[var(--foreground)]">
+                  {choice.label}
+                </h2>
+                <p className="text-sm leading-6 text-[var(--muted)]">
+                  {choice.description}
+                </p>
+              </div>
+              <span className="mt-4 inline-flex min-h-11 items-center justify-center rounded-md bg-[var(--accent)] px-4 text-sm font-bold text-white">
+                {choice.cta}
+              </span>
+            </Link>
           ))}
         </div>
       </PlaceholderPage>

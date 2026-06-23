@@ -1,6 +1,6 @@
 # DATABASE_SCHEMA.md
 
-Last updated: 2026-06-20
+Last updated: 2026-06-23
 
 ## Database Goal
 
@@ -136,6 +136,69 @@ RLS expectation:
 - user can access only rows where `user_id = auth.uid()`
 - the Stage 2.5 migration includes a trigger to ensure `session_id` and `exercise_id` belong to the same `user_id`
 
+## Table: cardio_exercises
+
+Purpose:
+
+Stores the user's aerobic/cardio exercise names and categories separately from
+strength-training exercise names.
+
+Fields:
+
+- `id uuid primary key default gen_random_uuid()`
+- `user_id uuid not null references auth.users(id) on delete cascade`
+- `name text not null`
+- `category text not null check (category in ('treadmill_running', 'indoor_walking', 'incline_walking', 'stair_climber', 'elliptical', 'cycling', 'rowing', 'outdoor_running', 'outdoor_walking', 'other'))`
+- `default_distance_unit text not null default 'km' check (default_distance_unit in ('km', 'mi'))`
+- `notes text`
+- `created_at timestamptz not null default now()`
+- `updated_at timestamptz not null default now()`
+
+Recommended constraints:
+
+- unique cardio exercise name per user via a `lower(btrim(name))` expression index
+- cardio exercise names should not be blank after trimming whitespace
+
+Relationships:
+
+- one user has many cardio exercises
+- one cardio exercise has many cardio entries
+
+RLS expectation:
+
+- user can access only rows where `user_id = auth.uid()`
+
+## Table: cardio_entries
+
+Purpose:
+
+Stores individual aerobic/cardio records measured by duration, distance, optional
+calories, and optional notes.
+
+Fields:
+
+- `id uuid primary key default gen_random_uuid()`
+- `user_id uuid not null references auth.users(id) on delete cascade`
+- `cardio_exercise_id uuid not null references cardio_exercises(id) on delete restrict`
+- `cardio_date date not null`
+- `duration_seconds integer not null check (duration_seconds > 0)`
+- `distance_value numeric(8, 2) check (distance_value is null or distance_value >= 0)`
+- `distance_unit text not null check (distance_unit in ('km', 'mi'))`
+- `calories integer check (calories is null or calories >= 0)`
+- `notes text`
+- `created_at timestamptz not null default now()`
+- `updated_at timestamptz not null default now()`
+
+Relationships:
+
+- each cardio entry belongs to one user
+- each cardio entry belongs to one cardio exercise
+
+RLS expectation:
+
+- user can access only rows where `user_id = auth.uid()`
+- the Stage 5 migration includes a trigger to ensure `cardio_exercise_id` belongs to the same `user_id`
+
 ## Migration Support Objects
 
 The Stage 2.5 migration adds:
@@ -151,6 +214,16 @@ The Stage 2 live verification hardening migration adds:
 - an explicit revoke of `truncate`, `references`, and `trigger` from `authenticated` on the Version 1 user-data tables
 - a confirming grant of only `select`, `insert`, `update`, and `delete` to `authenticated`
 
+The Stage 5 cardio migration adds:
+
+- `cardio_exercises` and `cardio_entries`
+- Row Level Security on both cardio tables
+- per-operation owner-scoped policies using `user_id = auth.uid()`
+- `public.validate_cardio_entry_ownership()` to prevent entries from referencing another user's cardio exercise
+- a unique per-user normalized cardio exercise name index
+- useful indexes on user/date/category and cardio exercise references
+- authenticated CRUD grants only, unsafe anon access revoked, and `truncate`, `references`, and `trigger` revoked from `authenticated`
+
 ## Workout History Storage
 
 Workout history is the combination of:
@@ -165,6 +238,22 @@ Workout history is the combination of:
 
 Version 1 should read recent history by joining sessions, exercises, and sets. Do not create a separate denormalized history table unless a later decision documents the need.
 
+## Cardio History Storage
+
+Cardio history is the combination of:
+
+- `cardio_entries.cardio_date`
+- `cardio_exercises.name`
+- `cardio_exercises.category`
+- `cardio_entries.duration_seconds`
+- `cardio_entries.distance_value`
+- `cardio_entries.distance_unit`
+- optional calories
+- optional notes
+
+Pace and speed are display-only derived values for now. Do not store them unless
+a later decision documents the need.
+
 ## Future Progress Analysis Support
 
 The planned schema can later support:
@@ -175,6 +264,7 @@ The planned schema can later support:
 - recent progress comparison
 - weekly training frequency
 - working set trends
+- cardio duration, distance, pace, and frequency summaries
 - CSV export
 
 These can be derived from `workout_sets` joined to `workout_sessions` and `exercises`.

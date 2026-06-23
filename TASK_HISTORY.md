@@ -226,6 +226,23 @@ This file tracks what has been done, what failed, and what future Codex sessions
   - Verified production `/dashboard` while signed out redirects to `/login?next=%2Fdashboard`.
   - Did not read, type, copy, or store the owner password, cookies, tokens, or any Supabase service role key.
   - Remaining limitation: production owner login, logout, and live workout logging QA still require the owner to enter the controlled account password.
+- 2026-06-23: Implemented Stage 5 Aerobic / Cardio Logging MVP code:
+  - Added `supabase/migrations/202606230001_create_cardio_schema_and_rls.sql` for `cardio_exercises` and `cardio_entries`.
+  - The migration enables RLS, adds owner-scoped CRUD policies, validates cardio entry ownership, keeps unsafe anon access revoked, and limits authenticated table privileges to normal CRUD.
+  - Added protected `/cardio` and `/cardio/new` routes.
+  - Added a mobile-first cardio entry form with existing cardio exercise selection, inline new cardio exercise creation, date, duration, distance, km/mi unit, optional calories, and optional notes.
+  - Added recent cardio history with duration, distance, optional calories, notes, category labels, and display-only pace when distance is greater than 0.
+  - Added `Cardio` to the protected app navigation and protected route prefix list.
+  - Did not change the existing weight-training flow, auth pattern, public signup boundary, Supabase environment variables, analytics, charts, Realtime, social features, payments, or public profiles.
+  - Verified `npm run lint` and `npm run build` pass.
+  - Remaining limitation: the Stage 5 migration has not been applied in live Supabase yet, and authenticated cardio creation/history persistence still needs owner manual QA after that.
+- 2026-06-23: Implemented compact UI polish from the Notion Version 2 issue list:
+  - Updated `/exercises` from always-expanded edit forms into compact exercise library cards with small initial badges, note previews, and collapsed `Manage` controls for edit/delete.
+  - Updated `/workouts` into a compact recent-history overview with workout date, set count, exercise count, exercise chips, short notes, collapsed set preview, and an `Open` link for full session details.
+  - Updated `/dashboard` so the owner manually chooses `Strength Training` or `Cardio` instead of relying on automatic workout-type detection.
+  - Aligned the Cardio category list with the Q3 prompt: treadmill running, indoor walking, incline walking, stair climber, elliptical, cycling, rowing, outdoor running, outdoor walking, and other cardio.
+  - Verified `npm run lint` and `npm run build` pass.
+  - Remaining limitation: logged-in visual and mutation QA still needs owner confirmation because Codex must not handle the owner password, cookies, or tokens.
 
 ## Failed Or Abandoned Attempts
 
@@ -247,6 +264,8 @@ This file tracks what has been done, what failed, and what future Codex sessions
 - Stage 4 owner feedback says the Stage 3 MVP works but the workout entry experience feels too fragmented. Do not start Stage 4 by redesigning the database; start by making the existing structured session/exercise/set relationship obvious and fast in the UI.
 - UX Rework 5 concludes the current structured entry flow is ready to support a future progress stage, but owner logged-in workflow QA still needs to prove live writes, refresh persistence, and recent-history grouping with real saved sets.
 - Production login, logout, and workout logging still need owner manual QA because Codex should not know or type the controlled account password.
+- Stage 5 cardio migration still needs to be applied in live Supabase before authenticated `/cardio/new` saves can work against production data.
+- Authenticated cardio exercise creation, cardio entry creation, refresh persistence, and `/cardio` recent history still need owner manual QA after the migration is applied.
 
 ## Current Priorities
 
@@ -256,6 +275,7 @@ This file tracks what has been done, what failed, and what future Codex sessions
 - Test logout and authenticated exercise create/update/delete behavior with the controlled owner account.
 - Test authenticated workout session creation, warmup/working set entry, and recent history display with the controlled owner account.
 - Complete owner-controlled production QA now that Vercel environment variables and Supabase Auth URL settings are configured.
+- Apply the Stage 5 cardio migration in Supabase, then test owner-controlled cardio logging on localhost or production.
 
 ## Next Planned Tasks
 
@@ -265,6 +285,7 @@ This file tracks what has been done, what failed, and what future Codex sessions
 - Test real workout session creation, refresh persistence, warmup set entry, working set entry, invalid set input handling, delete-set behavior, and recent history display on localhost using the controlled owner account.
 - Test real login/logout on production using the controlled owner account.
 - Test real production workout session creation, warmup/working set entry, refresh persistence, logout protection, and recent history display using the controlled owner account.
+- Apply `supabase/migrations/202606230001_create_cardio_schema_and_rls.sql` in the selected Supabase project, then test `/cardio/new` with Indoor Walking for 30 minutes and 3 km, refresh `/cardio`, add Running as a second entry, and confirm signed-out `/cardio` and `/cardio/new` redirect to login.
 
 ## Things To Avoid Repeating
 

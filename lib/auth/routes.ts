@@ -4,6 +4,7 @@ export const loginPath = "/login";
 const protectedRoutePrefixes = [
   dashboardPath,
   "/workouts",
+  "/cardio",
   "/exercises",
   "/progress",
   "/settings",

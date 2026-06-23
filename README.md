@@ -6,9 +6,9 @@ The app is for personal use only. It may eventually be deployed to a public Verc
 
 ## Current Status
 
-This repository has a Next.js App Router app, login-only Supabase Auth foundation, and Supabase migration files for the Version 1 schema, RLS, and live grants hardening.
+This repository has a Next.js App Router app, login-only Supabase Auth foundation, and Supabase migration files for the Version 1 schema, RLS, live grants hardening, and Stage 5 cardio logging.
 
-The migration has been applied and verified in the selected existing Supabase project. Local Supabase environment variables are configured in ignored `.env.local`, and the production Vercel project has the same client-safe Supabase variable names configured outside Git.
+The base Version 1 strength-training migrations have been applied and verified in the selected existing Supabase project. Local Supabase environment variables are configured in ignored `.env.local`, and the production Vercel project has the same client-safe Supabase variable names configured outside Git.
 
 Production URL:
 
@@ -17,15 +17,21 @@ Production URL:
 Stage 3 workout logging MVP code is implemented locally, and Stage 4 UX Rework has simplified the workout entry flow:
 
 - exercise and machine management
+- compact exercise library cards with collapsed management controls
 - workout session creation by date
 - exercise selection during workout entry
 - inline exercise creation from a workout session when needed
 - warmup and working set entry under the selected exercise
 - quick weight and reps controls with manual input still available
-- recent workout history from sessions, exercises, and sets
+- compact recent workout history from sessions, exercises, and sets
 - protected route redirects for signed-out visitors
 
 The authenticated owner workflow still needs final manual browser QA on this machine before claiming the reworked Version 1 flow is fully verified. Production signed-out route protection has been checked, but production login, logout, and workout logging still require the owner to enter the controlled account password.
+
+Stage 5 cardio logging code is implemented with protected `/cardio` and
+`/cardio/new` routes plus a new migration for `cardio_exercises` and
+`cardio_entries`. The cardio migration still needs to be applied in live Supabase
+before authenticated cardio creation can be accepted.
 
 See `SUPABASE_SETUP.md` for setup and manual QA notes.
 
