@@ -31,7 +31,6 @@ For small copy-only edits, skim the relevant document first. For authentication,
 - Keep the gym workflow fast on iPhone: large touch targets, minimal typing, quick set entry, and simple navigation.
 - Prefer source-of-truth data in Supabase Postgres for cross-device consistency.
 - After create, update, or delete operations, refetch from Supabase unless a later architecture decision documents a different sync model.
-- Keep process notes, screenshots, generated outputs, and temporary deliverables inside this project folder when they need to be kept. Prefer updating existing project documents such as `TASK_HISTORY.md` instead of scattering new output files across Downloads, Desktop, or unrelated folders.
 
 ## Security Rules
 
