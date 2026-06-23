@@ -163,25 +163,6 @@ function getShortPreview(value: string | null, maxLength = 96) {
   return value.length > maxLength ? `${value.slice(0, maxLength - 3)}...` : value;
 }
 
-function WorkoutFolderIcon({ hasSets }: { hasSets: boolean }) {
-  const tabColor = hasSets ? "bg-[#72b8e8]" : "bg-[var(--surface-strong)]";
-  const bodyColor = hasSets
-    ? "border-[#67addd] bg-[#8bc8f0]"
-    : "border-[var(--border)] bg-[var(--surface-strong)]";
-  const detailColor = hasSets ? "bg-white/45" : "bg-[var(--border)]";
-
-  return (
-    <div className="relative h-16 w-20 transition-transform group-hover:-translate-y-0.5">
-      <div className={`absolute left-2 top-1 h-4 w-9 rounded-t-md ${tabColor}`} />
-      <div
-        className={`absolute inset-x-0 bottom-1 h-12 rounded-md border shadow-sm ${bodyColor}`}
-      />
-      <div className={`absolute bottom-4 right-3 h-1.5 w-5 rounded-full ${detailColor}`} />
-      <div className={`absolute bottom-7 right-3 h-1.5 w-3 rounded-full ${detailColor}`} />
-    </div>
-  );
-}
-
 export default async function WorkoutsPage() {
   await requireAuth("/workouts");
   const supabase = await createClient();
@@ -247,53 +228,90 @@ export default async function WorkoutsPage() {
         ) : null}
 
         {history.length ? (
-          <ul className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+          <ul className="space-y-3">
             {history.map((session) => {
               const notePreview = getShortPreview(session.notes);
-              const primaryExercise =
-                session.exerciseNames[0] ?? "No sets recorded";
-              const extraExerciseCount = Math.max(session.exerciseCount - 1, 0);
-              const formattedDate = formatWorkoutDate(session.workout_date);
+              const visibleExerciseNames = session.exerciseNames.slice(0, 3);
+              const hiddenExerciseCount =
+                session.exerciseNames.length - visibleExerciseNames.length;
 
               return (
-                <li key={session.id}>
-                  <Link
-                    aria-label={`Open workout from ${formattedDate}`}
-                    className="group flex h-full min-h-52 flex-col rounded-md border border-[var(--border)] bg-[var(--surface)] p-3 text-center shadow-sm transition hover:border-[var(--accent)] hover:bg-white"
-                    href={`/workouts/${session.id}`}
-                  >
-                    <div className="flex h-28 w-full items-center justify-center rounded-md bg-[var(--surface-strong)] sm:h-32">
-                      <WorkoutFolderIcon hasSets={session.setCount > 0} />
-                    </div>
-
-                    <div className="mt-3 min-w-0 space-y-1">
-                      <h2 className="truncate text-sm font-black text-[var(--foreground)]">
-                        {primaryExercise}
-                      </h2>
-                      <p className="text-xs font-semibold text-[var(--muted)]">
-                        {formattedDate}
+                <li
+                  className="rounded-md border border-[var(--border)] bg-[var(--surface)] p-4 shadow-sm"
+                  key={session.id}
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="min-w-0 space-y-2">
+                      <p className="text-lg font-black text-[var(--foreground)]">
+                        {formatWorkoutDate(session.workout_date)}
                       </p>
-                      {extraExerciseCount > 0 ? (
-                        <p className="truncate text-xs font-semibold text-[var(--accent)]">
-                          +{extraExerciseCount} more
-                        </p>
-                      ) : notePreview ? (
-                        <p className="truncate text-xs font-semibold text-[var(--muted)]">
-                          {notePreview}
-                        </p>
+                      <div className="flex flex-wrap gap-2 text-xs font-bold uppercase">
+                        <span className="rounded-md bg-[var(--surface-strong)] px-2 py-1 text-[var(--foreground)]">
+                          {session.setCount} {session.setCount === 1 ? "set" : "sets"}
+                        </span>
+                        <span className="rounded-md bg-[var(--accent-soft)] px-2 py-1 text-[var(--accent-strong)]">
+                          {session.exerciseCount}{" "}
+                          {session.exerciseCount === 1 ? "exercise" : "exercises"}
+                        </span>
+                      </div>
+                    </div>
+                    <Link
+                      className="inline-flex min-h-10 shrink-0 items-center rounded-md border border-[var(--border)] bg-white px-3 text-sm font-bold text-[var(--accent)]"
+                      href={`/workouts/${session.id}`}
+                    >
+                      Open
+                    </Link>
+                  </div>
+
+                  {visibleExerciseNames.length ? (
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {visibleExerciseNames.map((name) => (
+                        <span
+                          className="rounded-md border border-[var(--border)] bg-white px-2 py-1 text-sm font-semibold text-[var(--foreground)]"
+                          key={name}
+                        >
+                          {name}
+                        </span>
+                      ))}
+                      {hiddenExerciseCount > 0 ? (
+                        <span className="rounded-md bg-[var(--surface-strong)] px-2 py-1 text-sm font-semibold text-[var(--muted)]">
+                          +{hiddenExerciseCount} more
+                        </span>
                       ) : null}
                     </div>
+                  ) : null}
 
-                    <div className="mt-auto flex justify-center gap-1 pt-3 text-[10px] font-black uppercase tracking-[0.08em]">
-                      <span className="rounded-md bg-[var(--surface-strong)] px-2 py-1 text-[var(--foreground)]">
-                        {session.setCount} {session.setCount === 1 ? "set" : "sets"}
-                      </span>
-                      <span className="rounded-md bg-[var(--accent-soft)] px-2 py-1 text-[var(--accent-strong)]">
-                        {session.exerciseCount}{" "}
-                        {session.exerciseCount === 1 ? "exercise" : "exercises"}
-                      </span>
-                    </div>
-                  </Link>
+                  {notePreview ? (
+                    <p className="mt-3 text-sm leading-6 text-[var(--muted)]">
+                      {notePreview}
+                    </p>
+                  ) : null}
+
+                  {session.previewSets.length ? (
+                    <details className="mt-3 rounded-md bg-[var(--surface-strong)]">
+                      <summary className="flex min-h-10 cursor-pointer items-center px-3 text-sm font-bold text-[var(--accent)]">
+                        Preview sets
+                      </summary>
+                      <ul className="space-y-2 border-t border-[var(--border)] p-3">
+                        {session.previewSets.map((set) => (
+                          <li
+                            className="text-sm leading-6 text-[var(--muted)]"
+                            key={set.id}
+                          >
+                            <span className="font-bold text-[var(--foreground)]">
+                              {set.exerciseName}
+                            </span>{" "}
+                            {set.setKind} {set.setNumber}: {set.weight} x {set.reps}
+                            {set.notes ? ` - ${getShortPreview(set.notes, 52)}` : ""}
+                          </li>
+                        ))}
+                      </ul>
+                    </details>
+                  ) : (
+                    <p className="mt-3 rounded-md bg-[var(--surface-strong)] p-3 text-sm font-semibold text-[var(--muted)]">
+                      No sets recorded yet.
+                    </p>
+                  )}
                 </li>
               );
             })}

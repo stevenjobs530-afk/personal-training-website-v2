@@ -17,20 +17,6 @@ type AppShellProps = {
 export function AppShell({ children }: AppShellProps) {
   return (
     <div className="min-h-screen bg-[var(--background)]">
-      <nav className="sticky top-0 z-40 border-b border-[var(--border)] bg-[var(--surface)]">
-        <div className="mx-auto grid min-h-9 w-full max-w-5xl grid-cols-6 px-1 sm:px-6">
-          {navItems.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className="flex items-center justify-center rounded-md px-1 text-center text-xs font-bold text-[var(--muted)] hover:bg-[var(--surface-strong)] hover:text-[var(--foreground)] sm:px-3 sm:text-sm"
-            >
-              {item.label}
-            </Link>
-          ))}
-        </div>
-      </nav>
-
       <header className="border-b border-[var(--border)] bg-[var(--surface)]">
         <div className="mx-auto flex w-full max-w-5xl items-center justify-between gap-4 px-4 py-4 sm:px-6">
           <Link href="/dashboard" className="flex min-h-11 flex-col justify-center">
@@ -52,9 +38,37 @@ export function AppShell({ children }: AppShellProps) {
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-5xl px-4 pb-10 pt-6 sm:px-6">
+      <main className="mx-auto w-full max-w-5xl px-4 pb-28 pt-6 sm:px-6 sm:pb-10">
         {children}
       </main>
+
+      <nav className="fixed inset-x-0 bottom-0 border-t border-[var(--border)] bg-[var(--surface)] sm:hidden">
+        <div className="grid grid-cols-6">
+          {navItems.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className="flex min-h-16 items-center justify-center px-1 text-center text-xs font-semibold text-[var(--muted)]"
+            >
+              {item.label}
+            </Link>
+          ))}
+        </div>
+      </nav>
+
+      <nav className="hidden border-t border-[var(--border)] bg-[var(--surface)] sm:block">
+        <div className="mx-auto flex w-full max-w-5xl gap-2 px-6 py-4">
+          {navItems.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className="inline-flex min-h-11 items-center rounded-md px-4 text-sm font-semibold text-[var(--muted)] hover:bg-[var(--surface-strong)] hover:text-[var(--foreground)]"
+            >
+              {item.label}
+            </Link>
+          ))}
+        </div>
+      </nav>
     </div>
   );
 }
