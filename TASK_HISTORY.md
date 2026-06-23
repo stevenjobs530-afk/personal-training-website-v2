@@ -243,6 +243,12 @@ This file tracks what has been done, what failed, and what future Codex sessions
   - Aligned the Cardio category list with the Q3 prompt: treadmill running, indoor walking, incline walking, stair climber, elliptical, cycling, rowing, outdoor running, outdoor walking, and other cardio.
   - Verified `npm run lint` and `npm run build` pass.
   - Remaining limitation: logged-in visual and mutation QA still needs owner confirmation because Codex must not handle the owner password, cookies, or tokens.
+- 2026-06-23: Updated the logged-in app layout and workout history presentation from owner screenshots:
+  - Moved the protected navigation links (`Today`, `Workouts`, `Cardio`, `Exercises`, `Progress`, `Settings`) into a slim sticky top bar and removed the old bottom navigation placement.
+  - Changed `/workouts` recent history from full-width cards into compact grid tiles with folder-style thumbnails, date labels, exercise names, and set/exercise counts.
+  - Reconfirmed the production Cardio error is consistent with the Stage 5 Supabase migration not being applied yet; the required tables are `cardio_exercises` and `cardio_entries`.
+  - Verified `npm run lint` and `npm run build` pass before deployment.
+  - Remaining limitation: `/cardio` and `/cardio/new` still need the Stage 5 migration applied in live Supabase before real cardio persistence can be tested.
 
 ## Failed Or Abandoned Attempts
 
