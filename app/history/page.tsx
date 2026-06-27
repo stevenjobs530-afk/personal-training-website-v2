@@ -68,7 +68,6 @@ type HistoryItem =
       href: string;
       id: string;
       kind: "strength";
-      note: string | null;
       setCount: number;
       sortKey: string;
       title: string;
@@ -79,7 +78,6 @@ type HistoryItem =
       href: string;
       id: string;
       kind: "cardio";
-      note: string | null;
       sortKey: string;
       title: string;
     };
@@ -217,14 +215,6 @@ function formatCardioDetails(entry: CardioEntryRow) {
   ]
     .filter(Boolean)
     .join(" - ");
-}
-
-function getShortPreview(value: string | null, maxLength = 72) {
-  if (!value) {
-    return null;
-  }
-
-  return value.length > maxLength ? `${value.slice(0, maxLength - 3)}...` : value;
 }
 
 function getActivityColor(count: number, isInactive: boolean) {
@@ -403,59 +393,196 @@ function groupHistoryItems(historyItems: HistoryItem[]): HistoryYearGroup[] {
     });
 }
 
-function HistoryCard({ item }: { item: HistoryItem }) {
-  const dateParts = formatMonthDay(item.date);
+function getHistoryItemSummary(item: HistoryItem) {
+  if (item.kind === "cardio") {
+    return item.details;
+  }
+
+  return item.setCount
+    ? `${item.setCount} ${item.setCount === 1 ? "set" : "sets"} - ${
+        item.exerciseCount
+      } ${item.exerciseCount === 1 ? "exercise" : "exercises"}`
+    : "Draft - no sets yet";
+}
+
+function getHistoryItemTypeLabel(item: HistoryItem) {
+  return item.kind === "cardio" ? "Cardio" : "Strength";
+}
+
+function getDayKindLabel(day: HistoryDayGroup) {
+  const hasCardio = day.items.some((item) => item.kind === "cardio");
+  const hasStrength = day.items.some((item) => item.kind === "strength");
+
+  if (hasCardio && hasStrength) {
+    return "Mixed";
+  }
+
+  return hasCardio ? "Cardio" : "Strength";
+}
+
+function getDaySummary(day: HistoryDayGroup) {
+  const strengthItems = day.items.filter((item) => item.kind === "strength");
+  const cardioItems = day.items.filter((item) => item.kind === "cardio");
+  const totalSets = strengthItems.reduce(
+    (total, item) => total + item.setCount,
+    0,
+  );
+  const totalExercises = strengthItems.reduce(
+    (total, item) => total + item.exerciseCount,
+    0,
+  );
+  const entrySummary = `${day.items.length} ${
+    day.items.length === 1 ? "entry" : "entries"
+  }`;
+
+  if (strengthItems.length && cardioItems.length) {
+    return `${entrySummary} - ${strengthItems.length} strength - ${cardioItems.length} cardio`;
+  }
+
+  if (strengthItems.length) {
+    return totalSets
+      ? `${entrySummary} - ${totalSets} ${
+          totalSets === 1 ? "set" : "sets"
+        } - ${totalExercises} ${
+          totalExercises === 1 ? "exercise" : "exercises"
+        }`
+      : `${entrySummary} - no sets yet`;
+  }
+
+  return day.items.length === 1 ? getHistoryItemSummary(day.items[0]) : entrySummary;
+}
+
+function getDayTitle(day: HistoryDayGroup) {
+  const titles = Array.from(
+    new Set(
+      day.items
+        .map((item) => item.title)
+        .filter((title) => title !== "Workout draft"),
+    ),
+  );
+  const visibleTitles = titles.slice(0, 2);
+
+  if (!visibleTitles.length) {
+    return "Workout draft";
+  }
+
+  return visibleTitles.join(", ");
+}
+
+function DayHistoryCard({ day }: { day: HistoryDayGroup }) {
+  const dateParts = formatMonthDay(day.date);
+  const dayKindLabel = getDayKindLabel(day);
+  const daySummary = getDaySummary(day);
+  const visibleTitles = getDayTitle(day);
+  const hiddenTitleCount = Math.max(
+    0,
+    new Set(
+      day.items
+        .map((item) => item.title)
+        .filter((title) => title !== "Workout draft"),
+    ).size - 2,
+  );
+  const isSingleEntry = day.items.length === 1;
+  const singleEntry = isSingleEntry ? day.items[0] : null;
+  const badgeClass =
+    dayKindLabel === "Cardio"
+      ? "inline-flex rounded-md bg-[var(--accent-soft)] px-2 py-1 text-[0.68rem] font-black uppercase text-[var(--accent-strong)]"
+      : "inline-flex rounded-md bg-[var(--surface-strong)] px-2 py-1 text-[0.68rem] font-black uppercase text-[var(--foreground)]";
+
+  if (singleEntry) {
+    return (
+      <Link
+        aria-label={`Open ${getHistoryItemTypeLabel(
+          singleEntry,
+        ).toLowerCase()} entry from ${formatLongDate(day.date)}`}
+        className="flex min-h-24 items-center gap-3 overflow-hidden rounded-md border border-[var(--border)] bg-[var(--surface)] p-3 shadow-sm transition hover:border-[var(--accent)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+        href={singleEntry.href}
+      >
+        <DateTile day={dateParts.day} month={dateParts.month} />
+
+        <div className="min-w-0 flex-1 space-y-1">
+          <span className={badgeClass}>{dayKindLabel}</span>
+          <p className="truncate text-sm font-black text-[var(--foreground)]">
+            {singleEntry.title}
+          </p>
+          <p className="truncate text-xs font-bold text-[var(--muted)]">
+            {daySummary}
+          </p>
+        </div>
+
+        <OpenLabel />
+      </Link>
+    );
+  }
 
   return (
-    <Link
-      className="flex h-40 flex-col justify-between overflow-hidden rounded-md border border-[var(--border)] bg-[var(--surface)] p-4 shadow-sm hover:border-[var(--accent)]"
-      href={item.href}
-    >
-      <div className="flex items-start justify-between gap-3">
-        <p className="text-base font-black leading-tight text-[var(--foreground)]">
-          {dateParts.month}
-          <br />
-          {dateParts.day}
-        </p>
-        <span
-          className={
-            item.kind === "cardio"
-              ? "rounded-md bg-[var(--accent-soft)] px-2 py-1 text-[0.68rem] font-black uppercase text-[var(--accent-strong)]"
-              : "rounded-md bg-[var(--surface-strong)] px-2 py-1 text-[0.68rem] font-black uppercase text-[var(--foreground)]"
-          }
-        >
-          {item.kind}
-        </span>
+    <article className="overflow-hidden rounded-md border border-[var(--border)] bg-[var(--surface)] p-3 shadow-sm">
+      <div className="flex min-h-20 items-center gap-3">
+        <DateTile day={dateParts.day} month={dateParts.month} />
+
+        <div className="min-w-0 flex-1 space-y-1">
+          <span className={badgeClass}>{dayKindLabel}</span>
+          <p className="truncate text-sm font-black text-[var(--foreground)]">
+            {visibleTitles}
+          </p>
+          <p className="truncate text-xs font-bold text-[var(--muted)]">
+            {daySummary}
+          </p>
+          {hiddenTitleCount > 0 ? (
+            <p className="text-[0.68rem] font-bold uppercase text-[var(--muted)]">
+              +{hiddenTitleCount} more activities
+            </p>
+          ) : null}
+        </div>
       </div>
 
-      {item.kind === "strength" ? (
-        <div className="min-w-0 space-y-1">
-          <p className="text-3xl font-black leading-none text-[var(--foreground)]">
-            {item.setCount}
-          </p>
-          <p className="truncate text-sm font-black text-[var(--foreground)]">
-            {item.title}
-          </p>
-          <p className="truncate text-xs font-bold text-[var(--muted)]">
-            {item.setCount} sets - {item.exerciseCount}{" "}
-            {item.exerciseCount === 1 ? "exercise" : "exercises"}
-          </p>
-        </div>
-      ) : (
-        <div className="min-w-0 space-y-1">
-          <p className="truncate text-base font-black text-[var(--foreground)]">
-            {item.title}
-          </p>
-          <p className="truncate text-xs font-bold text-[var(--muted)]">
-            {item.details}
-          </p>
-        </div>
-      )}
+      <ul className="mt-3 space-y-2 border-t border-[var(--border)] pt-3">
+        {day.items.map((item) => (
+          <li key={`${item.kind}-${item.id}`}>
+            <Link
+              className="flex min-h-11 items-center justify-between gap-3 rounded-md bg-[var(--background)] px-3 py-2 transition hover:bg-[var(--surface-strong)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+              href={item.href}
+            >
+              <div className="min-w-0">
+                <p className="truncate text-sm font-black text-[var(--foreground)]">
+                  {item.title}
+                </p>
+                <p className="mt-1 truncate text-xs font-bold text-[var(--muted)]">
+                  {getHistoryItemTypeLabel(item)} - {getHistoryItemSummary(item)}
+                </p>
+              </div>
+              <span className="shrink-0 text-sm font-black text-[var(--accent)]">
+                Open &gt;
+              </span>
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </article>
+  );
+}
 
-      <p className="truncate text-[0.68rem] font-bold uppercase text-[var(--muted)]">
-        {item.note ?? formatLongDate(item.date)}
-      </p>
-    </Link>
+function DateTile({ day, month }: { day: string; month: string }) {
+  return (
+    <div className="flex h-14 w-14 shrink-0 flex-col items-center justify-center rounded-md border border-[var(--border)] bg-[var(--surface-strong)] text-center">
+      <span className="text-[0.68rem] font-black uppercase text-[var(--muted)]">
+        {month}
+      </span>
+      <span className="text-2xl font-black leading-none text-[var(--foreground)]">
+        {day}
+      </span>
+    </div>
+  );
+}
+
+function OpenLabel() {
+  return (
+    <span className="inline-flex min-h-10 shrink-0 items-center justify-center rounded-md border border-[var(--border)] bg-white px-3 text-sm font-bold text-[var(--accent)]">
+      Open
+      <span aria-hidden="true" className="ml-2 text-base leading-none">
+        &gt;
+      </span>
+    </span>
   );
 }
 
@@ -544,10 +671,11 @@ export default async function HistoryPage() {
       href: `/workouts/${session.id}`,
       id: session.id,
       kind: "strength",
-      note: getShortPreview(session.notes),
       setCount: sessionSets.length,
       sortKey: `${session.workout_date}T${session.created_at}`,
-      title: exerciseNames.length ? exerciseNames.slice(0, 2).join(", ") : "Strength",
+      title: exerciseNames.length
+        ? exerciseNames.slice(0, 2).join(", ")
+        : "Workout draft",
     };
   });
 
@@ -560,7 +688,6 @@ export default async function HistoryPage() {
       href: "/cardio",
       id: entry.id,
       kind: "cardio",
-      note: getShortPreview(entry.notes),
       sortKey: `${entry.cardio_date}T${entry.created_at}`,
       title:
         exercise?.name ??
@@ -590,7 +717,7 @@ export default async function HistoryPage() {
       <PlaceholderPage
         eyebrow="History"
         title="Training history"
-        description="Frequency at a glance, then a compact grid of every session. Open a card to see the full detail."
+        description="Frequency at a glance, then a compact day-by-day summary. Open an entry to see the full detail."
       >
         {hasLoadError ? (
           <div
@@ -693,11 +820,10 @@ export default async function HistoryPage() {
 
         {historyGroups.length ? (
           <section className="space-y-3">
-            {historyGroups.map((yearGroup, yearIndex) => (
+            {historyGroups.map((yearGroup) => (
               <details
                 className="rounded-md border border-[var(--border)] bg-[var(--surface)] shadow-sm"
                 key={yearGroup.year}
-                open={yearIndex === 0}
               >
                 <summary className="flex min-h-14 cursor-pointer items-center justify-between gap-4 px-4 text-base font-black text-[var(--foreground)]">
                   <span>{yearGroup.year}</span>
@@ -707,11 +833,10 @@ export default async function HistoryPage() {
                 </summary>
 
                 <div className="space-y-3 border-t border-[var(--border)] p-3">
-                  {yearGroup.months.map((month, monthIndex) => (
+                  {yearGroup.months.map((month) => (
                     <details
                       className="rounded-md border border-[var(--border)] bg-[var(--background)]"
                       key={month.key}
-                      open={yearIndex === 0 && monthIndex === 0}
                     >
                       <summary className="flex min-h-12 cursor-pointer items-center justify-between gap-4 px-3 text-sm font-black text-[var(--foreground)]">
                         <span>{month.label}</span>
@@ -732,19 +857,7 @@ export default async function HistoryPage() {
                               </span>
                             </div>
 
-                            <ul
-                              className="grid gap-3"
-                              style={{
-                                gridTemplateColumns:
-                                  "repeat(auto-fit, minmax(min(100%, 13rem), 1fr))",
-                              }}
-                            >
-                              {day.items.map((item) => (
-                                <li key={`${item.kind}-${item.id}`}>
-                                  <HistoryCard item={item} />
-                                </li>
-                              ))}
-                            </ul>
+                            <DayHistoryCard day={day} />
                           </section>
                         ))}
                       </div>

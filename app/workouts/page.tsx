@@ -29,44 +29,64 @@ type ExerciseRow = {
   name: string;
 };
 
-type HistorySet = {
-  id: string;
-  setNumber: number;
-  setKind: "warmup" | "working";
-  weight: string;
-  reps: number;
-  notes: string | null;
-};
-
-type ExerciseHistory = {
-  exerciseId: string;
-  exerciseName: string;
-  sets: HistorySet[];
-};
-
 type SessionHistory = WorkoutSession & {
-  exercises: ExerciseHistory[];
   exerciseCount: number;
   exerciseNames: string[];
-  previewSets: (HistorySet & { exerciseName: string })[];
   setCount: number;
 };
 
-function formatWorkoutDate(value: string) {
-  return new Intl.DateTimeFormat("en", {
-    dateStyle: "medium",
-    timeZone: "UTC",
-  }).format(new Date(`${value}T00:00:00.000Z`));
+type WorkoutDayHistory = {
+  date: string;
+  exerciseCount: number;
+  exerciseNames: string[];
+  sessions: SessionHistory[];
+  setCount: number;
+};
+
+function formatWorkoutDateParts(value: string) {
+  const date = new Date(`${value}T00:00:00.000Z`);
+
+  return {
+    day: new Intl.DateTimeFormat("en", {
+      day: "numeric",
+      timeZone: "UTC",
+    }).format(date),
+    label: new Intl.DateTimeFormat("en", {
+      dateStyle: "medium",
+      timeZone: "UTC",
+    }).format(date),
+    month: new Intl.DateTimeFormat("en", {
+      month: "short",
+      timeZone: "UTC",
+    }).format(date),
+  };
 }
 
-function normalizeWeight(value: number | string) {
-  const numberValue = Number(value);
+function formatSetExerciseSummary({
+  exerciseCount,
+  setCount,
+}: {
+  exerciseCount: number;
+  setCount: number;
+}) {
+  return setCount
+    ? `${setCount} ${setCount === 1 ? "set" : "sets"} - ${exerciseCount} ${
+        exerciseCount === 1 ? "exercise" : "exercises"
+      }`
+    : "No sets yet";
+}
 
-  if (!Number.isFinite(numberValue)) {
-    return String(value);
+function formatDaySummary(day: WorkoutDayHistory) {
+  const sessionCount = day.sessions.length;
+  const sessionSummary = `${sessionCount} ${
+    sessionCount === 1 ? "session" : "sessions"
+  }`;
+
+  if (!day.setCount) {
+    return `${sessionSummary} - no sets yet`;
   }
 
-  return Number.isInteger(numberValue) ? String(numberValue) : String(numberValue);
+  return `${sessionSummary} - ${formatSetExerciseSummary(day)}`;
 }
 
 function buildSessionHistory({
@@ -88,79 +108,57 @@ function buildSessionHistory({
 
   return sessions.map((session) => {
     const sessionSets = setsBySessionId.get(session.id) ?? [];
-    const exerciseGroups = new Map<string, ExerciseHistory>();
-
-    sessionSets
-      .toSorted((left, right) => {
-        const leftName = exerciseNameById.get(left.exercise_id) ?? "";
-        const rightName = exerciseNameById.get(right.exercise_id) ?? "";
-        const nameCompare = leftName.localeCompare(rightName);
-
-        if (nameCompare !== 0) {
-          return nameCompare;
-        }
-
-        return left.set_number - right.set_number;
-      })
-      .forEach((set) => {
-        const exerciseGroup = exerciseGroups.get(set.exercise_id) ?? {
-          exerciseId: set.exercise_id,
-          exerciseName: exerciseNameById.get(set.exercise_id) ?? "Unknown exercise",
-          sets: [],
-        };
-
-        exerciseGroup.sets.push({
-          id: set.id,
-          setNumber: set.set_number,
-          setKind: set.set_kind,
-          weight: normalizeWeight(set.weight),
-          reps: set.reps,
-          notes: set.notes,
-        });
-
-        exerciseGroups.set(set.exercise_id, exerciseGroup);
-      });
+    const exerciseNames = Array.from(
+      new Set(
+        sessionSets.map(
+          (set) => exerciseNameById.get(set.exercise_id) ?? "Unknown exercise",
+        ),
+      ),
+    ).toSorted((left, right) => left.localeCompare(right));
 
     return {
       ...session,
-      exercises: Array.from(exerciseGroups.values()),
-      exerciseCount: exerciseGroups.size,
-      exerciseNames: Array.from(exerciseGroups.values()).map(
-        (exercise) => exercise.exerciseName,
-      ),
-      previewSets: sessionSets
-        .toSorted((left, right) => {
-          const leftName = exerciseNameById.get(left.exercise_id) ?? "";
-          const rightName = exerciseNameById.get(right.exercise_id) ?? "";
-          const nameCompare = leftName.localeCompare(rightName);
-
-          if (nameCompare !== 0) {
-            return nameCompare;
-          }
-
-          return left.set_number - right.set_number;
-        })
-        .slice(0, 3)
-        .map((set) => ({
-          id: set.id,
-          exerciseName: exerciseNameById.get(set.exercise_id) ?? "Unknown exercise",
-          setNumber: set.set_number,
-          setKind: set.set_kind,
-          weight: normalizeWeight(set.weight),
-          reps: set.reps,
-          notes: set.notes,
-        })),
+      exerciseCount: exerciseNames.length,
+      exerciseNames,
       setCount: sessionSets.length,
     };
   });
 }
 
-function getShortPreview(value: string | null, maxLength = 96) {
-  if (!value) {
-    return null;
-  }
+function buildWorkoutDayHistory(sessions: SessionHistory[]) {
+  const days = new Map<string, WorkoutDayHistory>();
 
-  return value.length > maxLength ? `${value.slice(0, maxLength - 3)}...` : value;
+  sessions.forEach((session) => {
+    const day = days.get(session.workout_date) ?? {
+      date: session.workout_date,
+      exerciseCount: 0,
+      exerciseNames: [],
+      sessions: [],
+      setCount: 0,
+    };
+
+    day.sessions.push(session);
+    day.setCount += session.setCount;
+
+    session.exerciseNames.forEach((name) => {
+      if (!day.exerciseNames.includes(name)) {
+        day.exerciseNames.push(name);
+      }
+    });
+
+    day.exerciseCount = day.exerciseNames.length;
+    days.set(session.workout_date, day);
+  });
+
+  return Array.from(days.values());
+}
+
+function getWorkoutTitle(exerciseNames: string[]) {
+  const visibleExerciseNames = exerciseNames.slice(0, 2);
+
+  return visibleExerciseNames.length
+    ? visibleExerciseNames.join(", ")
+    : "Workout draft";
 }
 
 export default async function WorkoutsPage() {
@@ -202,13 +200,14 @@ export default async function WorkoutsPage() {
     sessions,
     sets,
   });
+  const workoutDays = buildWorkoutDayHistory(history);
 
   return (
     <AppShell>
       <PlaceholderPage
         eyebrow="Workouts"
         title="Recent workouts"
-        description="Review recent sessions at a glance. Open a session for full set details."
+        description="Review recent sessions at a glance."
         actions={
           <Link
             href="/workouts/new"
@@ -227,87 +226,107 @@ export default async function WorkoutsPage() {
           </div>
         ) : null}
 
-        {history.length ? (
+        {workoutDays.length ? (
           <ul className="space-y-2">
-            {history.map((session) => {
-              const notePreview = getShortPreview(session.notes);
-              const visibleExerciseNames = session.exerciseNames.slice(0, 3);
+            {workoutDays.map((day) => {
+              const dateParts = formatWorkoutDateParts(day.date);
+              const session = day.sessions[0];
+              const isSingleSession = day.sessions.length === 1;
+              const dayTitle = getWorkoutTitle(day.exerciseNames);
               const hiddenExerciseCount =
-                session.exerciseNames.length - visibleExerciseNames.length;
-              const sessionTitle = visibleExerciseNames.length
-                ? visibleExerciseNames.join(", ")
-                : "Workout draft";
+                day.exerciseNames.length - day.exerciseNames.slice(0, 2).length;
+              const daySummary = isSingleSession
+                ? formatSetExerciseSummary(day)
+                : formatDaySummary(day);
+              const dateTile = (
+                <div className="flex h-14 w-14 shrink-0 flex-col items-center justify-center rounded-md border border-[var(--border)] bg-[var(--surface-strong)] text-center">
+                  <span className="text-[0.68rem] font-black uppercase text-[var(--muted)]">
+                    {dateParts.month}
+                  </span>
+                  <span className="text-2xl font-black leading-none text-[var(--foreground)]">
+                    {dateParts.day}
+                  </span>
+                </div>
+              );
+              const dayText = (
+                <div className="min-w-0 flex-1">
+                  <h2 className="truncate text-base font-black text-[var(--foreground)]">
+                    {dayTitle}
+                  </h2>
+                  <p className="mt-1 truncate text-sm font-semibold text-[var(--muted)]">
+                    {daySummary}
+                  </p>
 
-              return (
-                <li
-                  className="overflow-hidden rounded-md border border-[var(--border)] bg-[var(--surface)] shadow-sm"
-                  key={session.id}
-                >
-                  <div className="grid gap-3 px-3 py-3 sm:grid-cols-[8rem_minmax(0,1fr)_auto] sm:items-center">
-                    <div className="min-w-0">
-                      <p className="text-sm font-black text-[var(--foreground)]">
-                        {formatWorkoutDate(session.workout_date)}
-                      </p>
-                      <p className="mt-1 text-[0.68rem] font-bold uppercase text-[var(--muted)]">
-                        {session.setCount} {session.setCount === 1 ? "set" : "sets"} -{" "}
-                        {session.exerciseCount}{" "}
-                        {session.exerciseCount === 1 ? "exercise" : "exercises"}
-                      </p>
-                    </div>
+                  {hiddenExerciseCount > 0 ? (
+                    <p className="mt-1 text-xs font-bold uppercase text-[var(--muted)]">
+                      +{hiddenExerciseCount} more exercises
+                    </p>
+                  ) : null}
+                </div>
+              );
 
-                    <div className="min-w-0">
-                      <h2 className="truncate text-base font-black text-[var(--foreground)]">
-                        {sessionTitle}
-                      </h2>
-                      <p className="mt-1 truncate text-sm font-semibold text-[var(--muted)]">
-                        {notePreview ??
-                          (session.setCount
-                            ? "Open to review full set details."
-                            : "No sets recorded yet.")}
-                      </p>
-
-                      {session.previewSets.length ? (
-                        <details className="mt-1">
-                          <summary className="inline-flex cursor-pointer text-[0.68rem] font-black uppercase text-[var(--accent)]">
-                            Preview sets
-                          </summary>
-                          <ul className="mt-2 space-y-1 rounded-md bg-[var(--surface-strong)] px-2 py-2">
-                            {session.previewSets.map((set) => (
-                              <li
-                                className="truncate text-xs leading-5 text-[var(--muted)]"
-                                key={set.id}
-                              >
-                                <span className="font-bold text-[var(--foreground)]">
-                                  {set.exerciseName}
-                                </span>{" "}
-                                {set.setKind} {set.setNumber}: {set.weight} x{" "}
-                                {set.reps}
-                                {set.notes
-                                  ? ` - ${getShortPreview(set.notes, 52)}`
-                                  : ""}
-                              </li>
-                            ))}
-                          </ul>
-                        </details>
-                      ) : null}
-
-                      {hiddenExerciseCount > 0 ? (
-                        <p className="mt-1 text-xs font-bold uppercase text-[var(--muted)]">
-                          +{hiddenExerciseCount} more exercises
-                        </p>
-                      ) : null}
-                    </div>
-
-                    <Link
-                      className="inline-flex min-h-10 shrink-0 items-center justify-center rounded-md border border-[var(--border)] bg-white px-3 text-sm font-bold text-[var(--accent)]"
-                      href={`/workouts/${session.id}`}
-                    >
+              return isSingleSession && session ? (
+                <li key={day.date}>
+                  <Link
+                    aria-label={`Open workout from ${dateParts.label}`}
+                    className="flex min-h-20 items-center gap-3 rounded-md border border-[var(--border)] bg-[var(--surface)] p-3 shadow-sm transition hover:border-[var(--accent)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+                    href={`/workouts/${session.id}`}
+                  >
+                    {dateTile}
+                    {dayText}
+                    <span className="inline-flex min-h-10 shrink-0 items-center justify-center rounded-md border border-[var(--border)] bg-white px-3 text-sm font-bold text-[var(--accent)]">
                       Open
                       <span aria-hidden="true" className="ml-2 text-base leading-none">
                         &gt;
                       </span>
-                    </Link>
-                  </div>
+                    </span>
+                  </Link>
+                </li>
+              ) : (
+                <li key={day.date}>
+                  <details className="overflow-hidden rounded-md border border-[var(--border)] bg-[var(--surface)] shadow-sm">
+                    <summary className="flex min-h-20 cursor-pointer list-none items-center gap-3 p-3 transition hover:border-[var(--accent)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] [&::-webkit-details-marker]:hidden">
+                      {dateTile}
+                      {dayText}
+                      <span className="inline-flex min-h-10 shrink-0 items-center justify-center rounded-md border border-[var(--border)] bg-white px-3 text-sm font-bold text-[var(--accent)]">
+                        Sessions
+                        <span aria-hidden="true" className="ml-2 text-base leading-none">
+                          &gt;
+                        </span>
+                      </span>
+                    </summary>
+
+                    <ul className="space-y-2 border-t border-[var(--border)] bg-[var(--background)] p-3">
+                      {day.sessions.map((daySession) => {
+                        const sessionTitle = getWorkoutTitle(
+                          daySession.exerciseNames,
+                        );
+                        const sessionSummary =
+                          formatSetExerciseSummary(daySession);
+
+                        return (
+                          <li key={daySession.id}>
+                            <Link
+                              className="flex min-h-14 items-center justify-between gap-3 rounded-md border border-[var(--border)] bg-[var(--surface)] px-3 py-2 transition hover:border-[var(--accent)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+                              href={`/workouts/${daySession.id}`}
+                            >
+                              <div className="min-w-0">
+                                <p className="truncate text-sm font-black text-[var(--foreground)]">
+                                  {sessionTitle}
+                                </p>
+                                <p className="mt-1 truncate text-xs font-bold text-[var(--muted)]">
+                                  {sessionSummary}
+                                </p>
+                              </div>
+                              <span className="shrink-0 text-sm font-black text-[var(--accent)]">
+                                Open &gt;
+                              </span>
+                            </Link>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </details>
                 </li>
               );
             })}

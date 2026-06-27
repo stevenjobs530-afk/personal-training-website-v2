@@ -300,6 +300,18 @@ This file tracks what has been done, what failed, and what future Codex sessions
   - Confirmed terminal Claude Code is installed at `~/.local/bin/claude`, reports `2.1.195 (Claude Code)`, and responds from this project with `claude -p`.
   - Documented the collaboration boundary in both `CLAUDE.md` and `AGENTS.md`: Claude Code can lead local implementation, while Codex remains the review/quality gate and should stop changes that conflict with security, auth, schema, GitHub, Supabase, or owner instructions.
   - Added the handoff rule that repeated Claude Code uncertainty or unhelpful loops should stop and return to Codex or the owner rather than continuing blindly.
+- 2026-06-27: Implemented the first PWT guidance file UI simplification pass:
+  - Read `/Users/stevenjobs/Downloads/PWT 指导文件/第一次指导文件` and followed its narrow scope for `Recent workouts` and `Training history`.
+  - Changed `/workouts` recent sessions from larger preview cards into compact date tiles that show the date, short exercise title, set/exercise summary, draft status, and an `Open` entry to the full session detail.
+  - Removed the `/workouts` main-list `Preview sets` disclosure and the long `Open to review full set details.` sentence from the overview surface.
+  - Follow-up owner review found repeated date tiles when several workout sessions share the same date. `/workouts` now groups recent sessions by `workout_date`, shows one date tile per day, summarizes the day, and exposes the individual session `Open` links inside a collapsed `Sessions` disclosure.
+  - Changed `/history` so year and month `<details>` sections are closed by default; users click a year, then a month, before seeing date records.
+  - Changed `/history` strength/cardio records into compact date-entry cards with type badge, short title, short summary, and `Open` entry, without showing long notes or set details in the overview.
+  - Follow-up owner review found multi-entry days such as June 22 and June 20 were still visually noisy in `/history`. History day groups now render one date card per day; multi-entry days summarize the day once and list each underlying activity as a small row with its own `Open` link.
+  - Kept the existing auth flow, Supabase schema, RLS assumptions, cardio/strength data models, public signup boundary, and dependencies unchanged.
+  - Verified `npm run lint` and `npm run build` pass.
+  - Browser QA with the existing logged-in in-app session confirmed `/workouts` no longer contains `Preview sets`, repeated `Jun 22` workout sessions collapse to one visible date tile with seven hidden session links, `/history` shows one visible date tile each for June 27, June 22, and June 20 after opening June, year/month click expansion works, console warnings/errors are absent, and 390px mobile `/workouts` and `/history` have no page-level horizontal overflow.
+  - Signed-out HTTP checks still confirm `/workouts` and `/history` redirect to `/login?next=...`, while `/login` returns `200`.
 - 2026-06-27: Corrected Progress cardio logic and strength/cardio exercise separation:
   - Confirmed the duplicate `Indoor Walking.` strength entry is not code seed data; it comes from the user-owned `exercises` table, while canonical Indoor Walking belongs to `cardio_exercises`.
   - Added shared cardio-only name filtering so Indoor/Outdoor Walking, Indoor/Outdoor Running, Indoor Cycling, and Elliptical no longer appear in strength exercise lists, workout-set selectors, or strength progress trends.
