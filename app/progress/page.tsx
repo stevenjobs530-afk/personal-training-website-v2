@@ -2,6 +2,7 @@ import { AppShell } from "../_components/app-shell";
 import { PlaceholderPage } from "../_components/placeholder-page";
 import { requireAuth } from "@/lib/auth/require-auth";
 import { createClient } from "@/lib/supabase/server";
+import { filterStrengthExercises } from "@/lib/training/cardio-reserved";
 import { ProgressView, type ProgressItem } from "./progress-view";
 
 export const dynamic = "force-dynamic";
@@ -62,6 +63,16 @@ function buildAveragePoints(valuesByDate: Map<string, AggregateValue>) {
     }));
 }
 
+function buildSumPoints(valuesByDate: Map<string, number>) {
+  return Array.from(valuesByDate.entries())
+    .toSorted(([leftDate], [rightDate]) => leftDate.localeCompare(rightDate))
+    .map(([date, value]) => ({
+      date,
+      label: formatPointLabel(date),
+      value,
+    }));
+}
+
 function addAggregate(
   valuesByDate: Map<string, AggregateValue>,
   date: string,
@@ -109,6 +120,7 @@ function buildStrengthProgressItems({
       id: `strength-${exercise.id}`,
       initial: getInitial(exercise.name),
       kind: "strength",
+      metricMode: "average",
       metricLabel: "Average working-set weight over time",
       name: exercise.name,
       points,
@@ -124,7 +136,7 @@ function buildCardioProgressItems({
   cardioEntries: CardioEntryRow[];
   cardioExercises: CardioExerciseRow[];
 }): ProgressItem[] {
-  const valuesByExercise = new Map<string, Map<string, AggregateValue>>();
+  const valuesByExercise = new Map<string, Map<string, number>>();
 
   cardioEntries.forEach((entry) => {
     const calories = Number(entry.calories);
@@ -134,7 +146,7 @@ function buildCardioProgressItems({
     }
 
     const valuesByDate = valuesByExercise.get(entry.cardio_exercise_id) ?? new Map();
-    addAggregate(valuesByDate, entry.cardio_date, calories);
+    valuesByDate.set(entry.cardio_date, (valuesByDate.get(entry.cardio_date) ?? 0) + calories);
     valuesByExercise.set(entry.cardio_exercise_id, valuesByDate);
   });
 
@@ -143,9 +155,10 @@ function buildCardioProgressItems({
     id: `cardio-${exercise.id}`,
     initial: getInitial(exercise.name),
     kind: "cardio",
-    metricLabel: "Average kcal consumed over time",
+    metricMode: "cumulative",
+    metricLabel: "Cumulative kcal consumed over time",
     name: exercise.name,
-    points: buildAveragePoints(valuesByExercise.get(exercise.id) ?? new Map()),
+    points: buildSumPoints(valuesByExercise.get(exercise.id) ?? new Map()),
     unit: "kcal",
   }));
 }
@@ -180,7 +193,7 @@ export default async function ProgressPage() {
     .select("cardio_exercise_id, cardio_date, calories");
 
   const strengthItems = buildStrengthProgressItems({
-    exercises: (exercisesResult.data ?? []) as ExerciseRow[],
+    exercises: filterStrengthExercises((exercisesResult.data ?? []) as ExerciseRow[]),
     sessionsById,
     workoutSets,
   });

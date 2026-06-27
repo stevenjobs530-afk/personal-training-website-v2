@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { hasSupabaseEnv } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/server";
+import { isReservedCardioExerciseName } from "@/lib/training/cardio-reserved";
 
 export type WorkoutActionState = {
   status: "idle" | "success" | "error";
@@ -288,6 +289,13 @@ export async function createWorkoutExercise(
     return {
       status: "error",
       message: "Enter an exercise or machine name.",
+    };
+  }
+
+  if (isReservedCardioExerciseName(name)) {
+    return {
+      status: "error",
+      message: "Use Cardio for this exercise. Strength is for resistance work.",
     };
   }
 

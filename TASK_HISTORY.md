@@ -294,6 +294,29 @@ This file tracks what has been done, what failed, and what future Codex sessions
   - Verified `npm run lint` and `npm run build` pass immediately before sync.
   - Confirmed the sanitized `/Users/stevenjobs/Downloads/PW 2/personal-training-website-v2` source copy excludes `.env*`, `.git`, `.next`, `.vercel`, `node_modules`, and log files.
   - The remaining acceptance work is owner logged-in QA with real workout/cardio data after the code is available on GitHub.
+- 2026-06-27: Added `CLAUDE.md` as the Claude Code operating guide for this repository:
+  - Confirmed the local checkout is a Git repository on `main` connected to `https://github.com/stevenjobs530-afk/personal-training-website-v2.git`.
+  - Confirmed GitHub currently reports `stevenjobs530-afk/personal-training-website-v2` as public, matching the 2026-06-27 source-code-access decision.
+  - Confirmed terminal Claude Code is installed at `~/.local/bin/claude`, reports `2.1.195 (Claude Code)`, and responds from this project with `claude -p`.
+  - Documented the collaboration boundary in both `CLAUDE.md` and `AGENTS.md`: Claude Code can lead local implementation, while Codex remains the review/quality gate and should stop changes that conflict with security, auth, schema, GitHub, Supabase, or owner instructions.
+  - Added the handoff rule that repeated Claude Code uncertainty or unhelpful loops should stop and return to Codex or the owner rather than continuing blindly.
+- 2026-06-27: Corrected Progress cardio logic and strength/cardio exercise separation:
+  - Confirmed the duplicate `Indoor Walking.` strength entry is not code seed data; it comes from the user-owned `exercises` table, while canonical Indoor Walking belongs to `cardio_exercises`.
+  - Added shared cardio-only name filtering so Indoor/Outdoor Walking, Indoor/Outdoor Running, Indoor Cycling, and Elliptical no longer appear in strength exercise lists, workout-set selectors, or strength progress trends.
+  - Added validation to prevent creating or renaming strength exercises to those cardio-only names.
+  - Added a guarded Exercises-page cleanup action that can delete unreferenced cardio-only duplicates from the user's strength `exercises` rows while preserving rows already used by workout sets.
+  - Changed cardio progress from average kcal by day to daily kcal sums displayed as a cumulative running total over 1W, 1M, 6M, and 1Y ranges.
+  - Changed trend rendering from straight SVG polylines to straight two-point paths and curved multi-point paths, with cleaner Y-axis bounds for cumulative cardio.
+  - Verified `npm run lint` and `npm run build` pass.
+  - Verified signed-out `/progress` redirects to `/login?next=%2Fprogress` in the in-app browser without console errors or a framework overlay.
+  - Remaining limitation: logged-in visual QA of real progress data and the duplicate cleanup action still requires the owner-controlled session; Codex did not handle passwords, cookies, or tokens.
+- 2026-06-27: Added Progress category grouping after owner review:
+  - Updated `/progress` to group trend accordions under large `Strength` and `Cardio` sections, matching the category pattern used by `/exercises`.
+  - Kept Strength based on working-set weight trends and Cardio based on cumulative kcal trends.
+  - Verified `npm run lint` and `npm run build` pass.
+  - Verified the logged-in Chrome `/progress` page shows `Strength`, `Cardio`, and `Cumulative kcal` with no browser console errors.
+  - After explicit owner confirmation, used the protected Exercises-page cleanup action to physically delete the old unreferenced `Indoor Walking.` strength row from Supabase.
+  - Reloaded logged-in `/exercises` and verified the cleanup warning/button disappeared while Aerobic `Indoor Walking` remained.
 
 ## Failed Or Abandoned Attempts
 

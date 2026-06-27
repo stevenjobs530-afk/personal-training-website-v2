@@ -3,6 +3,10 @@ import { PlaceholderPage } from "../_components/placeholder-page";
 import { requireAuth } from "@/lib/auth/require-auth";
 import { createClient } from "@/lib/supabase/server";
 import {
+  filterStrengthExercises,
+  getReservedStrengthExercises,
+} from "@/lib/training/cardio-reserved";
+import {
   ExerciseManager,
   type CardioExerciseListItem,
   type ExerciseListItem,
@@ -24,6 +28,8 @@ export default async function ExercisesPage() {
 
   const exercises: ExerciseListItem[] = data ?? [];
   const cardioExercises: CardioExerciseListItem[] = cardioResult.data ?? [];
+  const visibleExercises = filterStrengthExercises(exercises);
+  const reservedStrengthExercises = getReservedStrengthExercises(exercises);
 
   return (
     <AppShell>
@@ -43,7 +49,8 @@ export default async function ExercisesPage() {
         <ExerciseManager
           cardioExercises={cardioExercises}
           cardioLoadError={cardioResult.error ? true : false}
-          exercises={exercises}
+          exercises={visibleExercises}
+          reservedStrengthExercises={reservedStrengthExercises}
         />
       </PlaceholderPage>
     </AppShell>

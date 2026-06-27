@@ -3,6 +3,7 @@
 import { useActionState, useEffect, useRef } from "react";
 import {
   createExercise,
+  deleteReservedCardioStrengthExercises,
   deleteExercise,
   type ExerciseActionState,
   updateExercise,
@@ -25,6 +26,7 @@ type ExerciseManagerProps = {
   cardioExercises: CardioExerciseListItem[];
   cardioLoadError: boolean;
   exercises: ExerciseListItem[];
+  reservedStrengthExercises: ExerciseListItem[];
 };
 
 const initialActionState: ExerciseActionState = {
@@ -323,10 +325,52 @@ function ExerciseCategory({
   );
 }
 
+function ReservedStrengthCleanup({
+  exercises,
+}: {
+  exercises: ExerciseListItem[];
+}) {
+  const [state, formAction, pending] = useActionState(
+    deleteReservedCardioStrengthExercises,
+    initialActionState,
+  );
+
+  if (!exercises.length) {
+    return null;
+  }
+
+  const names = exercises.map((exercise) => exercise.name).join(", ");
+
+  return (
+    <form
+      action={formAction}
+      className="mb-3 space-y-3 rounded-md border border-amber-200 bg-amber-50 p-3"
+      onSubmit={(event) => {
+        if (!window.confirm(`Delete cardio-only strength duplicate: ${names}?`)) {
+          event.preventDefault();
+        }
+      }}
+    >
+      <p className="text-sm font-semibold leading-6 text-amber-900">
+        {names} {exercises.length === 1 ? "is" : "are"} kept out of Strength.
+      </p>
+      <ActionMessage state={state} />
+      <button
+        className="min-h-10 rounded-md border border-amber-300 bg-white px-3 text-sm font-bold text-amber-900 disabled:cursor-not-allowed disabled:text-[var(--muted)]"
+        disabled={pending}
+        type="submit"
+      >
+        {pending ? "Checking..." : "Delete from Strength"}
+      </button>
+    </form>
+  );
+}
+
 export function ExerciseManager({
   cardioExercises,
   cardioLoadError,
   exercises,
+  reservedStrengthExercises,
 }: ExerciseManagerProps) {
   return (
     <div className="space-y-6">
@@ -350,6 +394,7 @@ export function ExerciseManager({
             icon="H"
             title="Anaerobic"
           >
+            <ReservedStrengthCleanup exercises={reservedStrengthExercises} />
             {exercises.length ? (
               <ul className="grid items-stretch gap-3 sm:grid-cols-2">
                 {exercises.map((exercise) => (

@@ -41,7 +41,7 @@ UX Rework 1-5 confirms the Version 1 workout entry flow is now structured enough
 - `/workouts` recent history reads sessions, sets, and exercises, then groups sets under each exercise name.
 - Session notes and set notes remain optional context fields, not the primary place for structured workout data.
 
-The 2026-06-27 local preview adds a lightweight derived progress page. Strength trends are calculated from working sets joined to workout sessions and exercises; warm-ups are excluded. Cardio kcal trends can be shown from `cardio_entries` when the Stage 5 cardio setup is available. This remains a read-only view and does not add analytics tables, AI analysis, Realtime, or advanced dashboards.
+The 2026-06-27 local preview adds a lightweight derived progress page. Strength trends are calculated from working sets joined to workout sessions and exercises; warm-ups are excluded. Cardio progress is calculated from daily kcal totals and displayed as a cumulative running total over 1 week, 1 month, 6 month, or 1 year ranges when the Stage 5 cardio setup is available. This remains a read-only view and does not add analytics tables, AI analysis, Realtime, or advanced dashboards.
 
 Stage 5 adds an Aerobic / Cardio Logging MVP:
 
@@ -53,7 +53,7 @@ Stage 5 adds an Aerobic / Cardio Logging MVP:
 
 The 2026-06-27 local preview update adds a protected `/history` overview that combines strength sessions and cardio entries into a frequency grid and compact session cards. This is a read-only history surface and does not change the underlying workout or cardio data models.
 
-The later 2026-06-27 polish pass makes `/history` collapsible by year, month, and day; groups `/exercises` into Anaerobic and Aerobic sections; and changes `/progress` from a placeholder into a searchable accordion with simple SVG trend charts.
+The later 2026-06-27 polish pass makes `/history` collapsible by year, month, and day; groups `/exercises` into Anaerobic and Aerobic sections; and changes `/progress` from a placeholder into a searchable accordion with simple SVG trend charts. Cardio-only exercise names are kept out of strength training selectors and trend lists so Indoor Walking remains an Aerobic/Cardio item.
 
 ## Version 1 Route Candidates
 

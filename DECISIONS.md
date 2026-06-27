@@ -90,4 +90,10 @@ This file records important project decisions. Add new entries when the project 
 
 - **Reason:** The owner wants the Progress page to resemble a searchable exercise-progress view with collapsible exercise rows and trend context.
 - **Alternatives considered:** keep `/progress` as a placeholder, or add a charting dependency and a larger analytics layer.
-- **Consequences:** `/progress` now derives simple trends from existing Supabase rows. Strength charts average working-set weights by exercise and date, while cardio charts average kcal by cardio exercise when the cardio tables are available. No analytics tables, schema changes, AI analysis, Realtime, public signup, or new dependencies were added.
+- **Consequences:** `/progress` now derives simple trends from existing Supabase rows. Strength charts average working-set weights by exercise and date, while cardio charts sum daily kcal and show a running cumulative total across the selected time range. No analytics tables, schema changes, AI analysis, Realtime, public signup, or new dependencies were added.
+
+### Decision: Keep cardio-only exercise names out of strength training
+
+- **Reason:** Cardio activities such as Indoor Walking belong in the separate cardio model. If a matching row exists in the strength `exercises` table, it creates duplicate Progress and Exercises entries and confuses the training categories.
+- **Alternatives considered:** manually delete the live row only, add an exercise type column to `exercises`, or merge cardio into strength sets.
+- **Consequences:** Strength exercise creation/update now rejects cardio-only names, strength selectors and progress lists filter them out, and the Exercises page exposes a guarded cleanup action for unreferenced duplicate strength rows. The cardio model, auth flow, RLS rules, and database schema remain unchanged.

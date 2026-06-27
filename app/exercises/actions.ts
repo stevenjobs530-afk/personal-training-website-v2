@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { hasSupabaseEnv } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/server";
+import { isReservedCardioExerciseName } from "@/lib/training/cardio-reserved";
 
 export type ExerciseActionState = {
   status: "idle" | "success" | "error";
@@ -71,6 +72,13 @@ function validateName(name: string): ExerciseActionState | null {
     return {
       status: "error",
       message: "Enter an exercise or machine name.",
+    };
+  }
+
+  if (isReservedCardioExerciseName(name)) {
+    return {
+      status: "error",
+      message: "Use Cardio for this exercise. Strength is for resistance work.",
     };
   }
 
@@ -238,5 +246,99 @@ export async function deleteExercise(
   return {
     status: "success",
     message: "Exercise deleted.",
+  };
+}
+
+export async function deleteReservedCardioStrengthExercises(
+  _previousState: ExerciseActionState,
+  _formData: FormData,
+): Promise<ExerciseActionState> {
+  void _previousState;
+  void _formData;
+
+  const context = await getActionContext();
+
+  if (!context.ok) {
+    return context.state;
+  }
+
+  const { data: exercises, error: exerciseError } = await context.supabase
+    .from("exercises")
+    .select("id, name")
+    .eq("user_id", context.userId);
+
+  if (exerciseError) {
+    return {
+      status: "error",
+      message: "Strength exercises could not be checked. Try again.",
+    };
+  }
+
+  const reservedExercises = (exercises ?? []).filter((exercise) =>
+    isReservedCardioExerciseName(exercise.name),
+  );
+  const reservedIds = reservedExercises.map((exercise) => exercise.id);
+
+  if (!reservedIds.length) {
+    return {
+      status: "success",
+      message: "No cardio-only strength duplicates were found.",
+    };
+  }
+
+  const { data: referencedSets, error: setsError } = await context.supabase
+    .from("workout_sets")
+    .select("exercise_id")
+    .eq("user_id", context.userId)
+    .in("exercise_id", reservedIds);
+
+  if (setsError) {
+    return {
+      status: "error",
+      message: "Strength usage could not be checked. Try again.",
+    };
+  }
+
+  const referencedExerciseIds = new Set(
+    (referencedSets ?? []).map((set) => set.exercise_id),
+  );
+  const deletableIds = reservedIds.filter((id) => !referencedExerciseIds.has(id));
+
+  if (!deletableIds.length) {
+    return {
+      status: "error",
+      message:
+        "The cardio-only strength duplicate is already used by workout sets, so it was kept.",
+    };
+  }
+
+  const { error: deleteError } = await context.supabase
+    .from("exercises")
+    .delete()
+    .eq("user_id", context.userId)
+    .in("id", deletableIds);
+
+  if (deleteError) {
+    return {
+      status: "error",
+      message: "The cardio-only strength duplicate could not be deleted. Try again.",
+    };
+  }
+
+  revalidatePath("/exercises");
+  revalidatePath("/progress");
+  revalidatePath("/workouts");
+
+  const keptCount = reservedIds.length - deletableIds.length;
+  const deletedText = `${deletableIds.length} ${
+    deletableIds.length === 1 ? "duplicate" : "duplicates"
+  } deleted.`;
+  const keptText = keptCount
+    ? ` ${keptCount} ${keptCount === 1 ? "duplicate was" : "duplicates were"} kept because workout sets use it.`
+    : "";
+
+  return {
+    status: "success",
+    message: `${deletedText}${keptText}`,
   };
 }

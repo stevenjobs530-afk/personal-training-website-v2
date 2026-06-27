@@ -32,6 +32,14 @@ For small copy-only edits, skim the relevant document first. For authentication,
 - Prefer source-of-truth data in Supabase Postgres for cross-device consistency.
 - After create, update, or delete operations, refetch from Supabase unless a later architecture decision documents a different sync model.
 
+## Claude Code Coordination
+
+- `CLAUDE.md` is the operating guide for Claude Code in this repository.
+- Claude Code may lead local implementation work, but it must start from the project root and follow this `AGENTS.md` file.
+- Codex remains the review and quality gate for changes that touch auth, database schema, Supabase data, GitHub visibility/pushes, secrets, or owner-facing product boundaries.
+- If Claude Code reports that this folder is not a git repository, first confirm it is running in `/Users/stevenjobs/Downloads/personal-training-website-v2` before accepting that conclusion.
+- If Claude Code gets stuck on the same issue or keeps proposing changes that do not solve the actual owner request, stop the loop and hand the decision back to Codex or the owner.
+
 ## Security Rules
 
 - Never expose a Supabase service role key in frontend code, client bundles, docs examples, screenshots, or commits.

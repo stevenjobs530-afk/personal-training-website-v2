@@ -4,6 +4,7 @@ import { AppShell } from "../../_components/app-shell";
 import { PlaceholderPage } from "../../_components/placeholder-page";
 import { requireAuth } from "@/lib/auth/require-auth";
 import { createClient } from "@/lib/supabase/server";
+import { filterStrengthExercises } from "@/lib/training/cardio-reserved";
 import {
   type SessionExercise,
   type SessionSet,
@@ -81,6 +82,7 @@ export default async function WorkoutSessionPage({
 
   const session = sessionResult.data as WorkoutSession;
   const exercises = (exercisesResult.data ?? []) as SessionExercise[];
+  const selectableExercises = filterStrengthExercises(exercises);
   const exerciseNameById = new Map(
     exercises.map((exercise) => [exercise.id, exercise.name]),
   );
@@ -119,7 +121,7 @@ export default async function WorkoutSessionPage({
           </div>
         ) : null}
         <WorkoutSetManager
-          exercises={exercises}
+          exercises={selectableExercises}
           sessionId={session.id}
           sets={sets}
         />
