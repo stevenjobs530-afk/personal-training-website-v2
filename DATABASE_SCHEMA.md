@@ -148,7 +148,7 @@ Fields:
 - `id uuid primary key default gen_random_uuid()`
 - `user_id uuid not null references auth.users(id) on delete cascade`
 - `name text not null`
-- `category text not null check (category in ('treadmill_running', 'indoor_walking', 'incline_walking', 'stair_climber', 'elliptical', 'cycling', 'rowing', 'outdoor_running', 'outdoor_walking', 'other'))`
+- `category text not null check (category in ('indoor_walking', 'outdoor_walking', 'indoor_running', 'outdoor_running', 'cycling', 'elliptical'))`
 - `default_distance_unit text not null default 'km' check (default_distance_unit in ('km', 'mi'))`
 - `notes text`
 - `created_at timestamptz not null default now()`
@@ -172,8 +172,8 @@ RLS expectation:
 
 Purpose:
 
-Stores individual aerobic/cardio records measured by duration, distance, optional
-calories, and optional notes.
+Stores individual aerobic/cardio records measured by duration, required kcal,
+conditional distance, and optional notes.
 
 Fields:
 
@@ -182,9 +182,9 @@ Fields:
 - `cardio_exercise_id uuid not null references cardio_exercises(id) on delete restrict`
 - `cardio_date date not null`
 - `duration_seconds integer not null check (duration_seconds > 0)`
-- `distance_value numeric(8, 2) check (distance_value is null or distance_value >= 0)`
+- `distance_value numeric(8, 2) check (distance_value is null or distance_value > 0)`
 - `distance_unit text not null check (distance_unit in ('km', 'mi'))`
-- `calories integer check (calories is null or calories >= 0)`
+- `calories integer not null check (calories > 0)`
 - `notes text`
 - `created_at timestamptz not null default now()`
 - `updated_at timestamptz not null default now()`
@@ -198,6 +198,7 @@ RLS expectation:
 
 - user can access only rows where `user_id = auth.uid()`
 - the Stage 5 migration includes a trigger to ensure `cardio_exercise_id` belongs to the same `user_id`
+- the same trigger requires distance for indoor/outdoor walking and running, and clears distance for cycling and elliptical entries
 
 ## Migration Support Objects
 
@@ -219,10 +220,14 @@ The Stage 5 cardio migration adds:
 - `cardio_exercises` and `cardio_entries`
 - Row Level Security on both cardio tables
 - per-operation owner-scoped policies using `user_id = auth.uid()`
-- `public.validate_cardio_entry_ownership()` to prevent entries from referencing another user's cardio exercise
+- `public.validate_cardio_entry_ownership()` to prevent entries from referencing another user's cardio exercise and enforce cardio distance rules
 - a unique per-user normalized cardio exercise name index
 - useful indexes on user/date/category and cardio exercise references
 - authenticated CRUD grants only, unsafe anon access revoked, and `truncate`, `references`, and `trigger` revoked from `authenticated`
+
+Live status: applied in the selected Supabase project on 2026-06-27 using
+`supabase/migrations/202606270001_apply_cardio_schema_and_seed_exercises.sql`.
+The seed creates default cardio exercises for existing auth users.
 
 ## Workout History Storage
 
@@ -248,11 +253,12 @@ Cardio history is the combination of:
 - `cardio_entries.duration_seconds`
 - `cardio_entries.distance_value`
 - `cardio_entries.distance_unit`
-- optional calories
+- `cardio_entries.calories`
 - optional notes
 
-Pace and speed are display-only derived values for now. Do not store them unless
-a later decision documents the need.
+Kcal is the primary cardio progress metric. Pace and speed are display-only
+derived values when distance is present; do not store them unless a later
+decision documents the need.
 
 ## Future Progress Analysis Support
 
@@ -264,7 +270,7 @@ The planned schema can later support:
 - recent progress comparison
 - weekly training frequency
 - working set trends
-- cardio duration, distance, pace, and frequency summaries
+- cardio kcal, distance, duration, and frequency summaries
 - CSV export
 
 These can be derived from `workout_sets` joined to `workout_sessions` and `exercises`.

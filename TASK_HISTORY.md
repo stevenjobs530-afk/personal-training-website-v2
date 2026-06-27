@@ -230,8 +230,8 @@ This file tracks what has been done, what failed, and what future Codex sessions
   - Added `supabase/migrations/202606230001_create_cardio_schema_and_rls.sql` for `cardio_exercises` and `cardio_entries`.
   - The migration enables RLS, adds owner-scoped CRUD policies, validates cardio entry ownership, keeps unsafe anon access revoked, and limits authenticated table privileges to normal CRUD.
   - Added protected `/cardio` and `/cardio/new` routes.
-  - Added a mobile-first cardio entry form with existing cardio exercise selection, inline new cardio exercise creation, date, duration, distance, km/mi unit, optional calories, and optional notes.
-  - Added recent cardio history with duration, distance, optional calories, notes, category labels, and display-only pace when distance is greater than 0.
+  - Added a mobile-first cardio entry form with existing cardio exercise selection, inline new cardio exercise creation, date, duration, distance, km/mi unit, kcal, and optional notes.
+  - Added recent cardio history with duration, distance, kcal, notes, and category labels.
   - Added `Cardio` to the protected app navigation and protected route prefix list.
   - Did not change the existing weight-training flow, auth pattern, public signup boundary, Supabase environment variables, analytics, charts, Realtime, social features, payments, or public profiles.
   - Verified `npm run lint` and `npm run build` pass.
@@ -240,7 +240,7 @@ This file tracks what has been done, what failed, and what future Codex sessions
   - Updated `/exercises` from always-expanded edit forms into compact exercise library cards with small initial badges, note previews, and collapsed `Manage` controls for edit/delete.
   - Updated `/workouts` into a compact recent-history overview with workout date, set count, exercise count, exercise chips, short notes, collapsed set preview, and an `Open` link for full session details.
   - Updated `/dashboard` so the owner manually chooses `Strength Training` or `Cardio` instead of relying on automatic workout-type detection.
-  - Aligned the Cardio category list with the Q3 prompt: treadmill running, indoor walking, incline walking, stair climber, elliptical, cycling, rowing, outdoor running, outdoor walking, and other cardio.
+  - Aligned the Cardio category list with the Q3 prompt used at the time.
   - Verified `npm run lint` and `npm run build` pass.
   - Remaining limitation: logged-in visual and mutation QA still needs owner confirmation because Codex must not handle the owner password, cookies, or tokens.
 - 2026-06-27: Changed the GitHub repository visibility from private to public:
@@ -251,6 +251,49 @@ This file tracks what has been done, what failed, and what future Codex sessions
   - Changed `stevenjobs530-afk/personal-training-website-v2` to public so external coding assistants can access the source code.
   - Verified GitHub reports `visibility: PUBLIC` and `isPrivate: false`.
   - The app boundary is unchanged: deployed private workout content remains protected by login, Supabase Auth, and RLS.
+- 2026-06-27: Built a local preview version of the app shell and History overview:
+  - Moved the main app navigation into a top content-level tab bar for Today, Workouts, Cardio, History, Exercises, Progress, and Settings.
+  - Added a browser-local Preview width control with Phone, iPad, and Desktop widths.
+  - Added protected `/history` as a combined read-only strength/cardio overview with frequency squares and compact session cards.
+  - Kept the existing Supabase Auth pattern, RLS assumptions, workout/cardio tables, public signup boundary, and GitHub remote unchanged.
+  - Updated workout and cardio mutations to revalidate `/history` after saved-data changes.
+  - Verified `npm run lint` and `npm run build` pass.
+  - Verified local `/login` returns `200` and signed-out `/history` redirects to `/login?next=%2Fhistory`.
+  - Did not commit, push, or sync this preview to GitHub.
+  - Remaining limitation: full logged-in visual QA of the new app shell and `/history` page requires the owner to sign in with the controlled account; Codex must not handle the owner password, cookies, or tokens.
+- 2026-06-27: Further polished the local preview from the new reference images:
+  - Centered month labels in the History frequency grid by grouping weeks into month spans.
+  - Changed `/history` session cards into collapsible Year -> Month -> Day groups, with smaller type and fixed-height cards.
+  - Changed `/exercises` to show `Saved Exercises` with Anaerobic and Aerobic collapsible sections; Anaerobic uses the existing `exercises` table, and Aerobic uses `cardio_exercises` when available.
+  - Replaced the `/progress` placeholder with a searchable collapsible progress view and lightweight SVG trend charts derived from existing workout/cardio rows.
+  - Kept auth, RLS, schema, Supabase environment variables, dependencies, and GitHub remote unchanged.
+  - Verified `npm run lint` and `npm run build` pass.
+  - Verified local `/login` returns `200`; signed-out `/history`, `/exercises`, and `/progress` redirect to login without framework overlay or console errors in the in-app browser.
+  - Did not commit, push, or sync this preview to GitHub.
+  - Remaining limitation: logged-in visual QA for the new History, Exercises, and Progress pages still requires the owner to sign in with the controlled account.
+- 2026-06-27: Refined the cardio/Supabase preview before GitHub sync:
+  - Updated the History frequency grid to cover January through December for the current year, keep month labels centered, and allow horizontal scrolling when the grid is wider than the preview.
+  - Narrowed cardio categories to Indoor Walking, Outdoor Walking, Indoor Running, Outdoor Running, Indoor Cycling, and Elliptical.
+  - Made kcal required for cardio entries; walking and running also require distance, while cycling and elliptical clear distance at the database trigger layer.
+  - Changed cardio progress trends from duration to kcal so aerobic progress follows energy consumed rather than weight or pace.
+  - Added `supabase/migrations/202606270001_apply_cardio_schema_and_seed_exercises.sql` for the Supabase SQL Editor flow; it creates the cardio tables, RLS policies, validation trigger, indexes, grants, and default aerobic exercises for existing users.
+  - Applied the SQL in the selected Supabase project through SQL Editor after owner confirmation; Supabase returned `Success. No rows returned.` and Table Editor now lists `cardio_entries` and `cardio_exercises`.
+  - Verified local `/cardio/new` now loads the default cardio exercise options from Supabase and no longer shows the cardio setup warning.
+  - Verified local `/history` no longer shows the history/cardio setup warning and still exposes all 12 months with 365 current-year day squares.
+  - Remaining limitation: no real cardio entry was created during this pass to avoid polluting owner data; owner still needs to save a real entry with kcal and confirm refresh persistence.
+- 2026-06-27: Corrected the Workouts and History preview after owner review:
+  - Changed `/workouts` from spacious session cards into a compact single-column recent-session row list with date, session title, set/exercise count, an Open action, and a lightweight inline `Preview sets` disclosure.
+  - Fixed the `/history` frequency grid so future dates inside the current year render as visible empty squares; only adjacent-year padding cells are hidden.
+  - Verified in the browser that the History grid exposes 365 visible current-year day squares and includes July, August, September, and December.
+  - Ran a read-only Claude Code review against the sanitized `PW 2` copy; it confirmed the compact Workouts row list and full-year History heatmap behavior.
+  - Copied a sanitized source-code snapshot to `/Users/stevenjobs/Downloads/PW 2/personal-training-website-v2`, excluding `.env*`, `.git`, `.next`, `.vercel`, `node_modules`, and log files.
+  - Verified `npm run lint` and `npm run build` pass after the corrections.
+  - Did not commit, push, or sync these preview changes to GitHub.
+- 2026-06-27: Owner approved syncing the local preview to GitHub:
+  - Scope includes the top content navigation, Preview width control, compact Workouts rows, full-year History grid, Saved Exercises categories, Progress trend view, and applied Cardio/Supabase setup files.
+  - Verified `npm run lint` and `npm run build` pass immediately before sync.
+  - Confirmed the sanitized `/Users/stevenjobs/Downloads/PW 2/personal-training-website-v2` source copy excludes `.env*`, `.git`, `.next`, `.vercel`, `node_modules`, and log files.
+  - The remaining acceptance work is owner logged-in QA with real workout/cardio data after the code is available on GitHub.
 
 ## Failed Or Abandoned Attempts
 
@@ -272,8 +315,10 @@ This file tracks what has been done, what failed, and what future Codex sessions
 - Stage 4 owner feedback says the Stage 3 MVP works but the workout entry experience feels too fragmented. Do not start Stage 4 by redesigning the database; start by making the existing structured session/exercise/set relationship obvious and fast in the UI.
 - UX Rework 5 concludes the current structured entry flow is ready to support a future progress stage, but owner logged-in workflow QA still needs to prove live writes, refresh persistence, and recent-history grouping with real saved sets.
 - Production login, logout, and workout logging still need owner manual QA because Codex should not know or type the controlled account password.
-- Stage 5 cardio migration still needs to be applied in live Supabase before authenticated `/cardio/new` saves can work against production data.
-- Authenticated cardio exercise creation, cardio entry creation, refresh persistence, and `/cardio` recent history still need owner manual QA after the migration is applied.
+- Stage 5 cardio schema and default exercise seed data are applied in the selected Supabase project.
+- Authenticated cardio exercise creation, cardio entry creation, refresh persistence, and `/cardio` recent history still need owner manual QA with real owner data.
+- Full logged-in visual QA of the 2026-06-27 top navigation, Preview width control, and protected `/history` overview still needs owner confirmation in an authenticated browser session.
+- Full logged-in visual QA of the 2026-06-27 History folds, Saved Exercises categories, and Progress trend charts still needs owner confirmation in an authenticated browser session.
 
 ## Current Priorities
 
@@ -283,7 +328,9 @@ This file tracks what has been done, what failed, and what future Codex sessions
 - Test logout and authenticated exercise create/update/delete behavior with the controlled owner account.
 - Test authenticated workout session creation, warmup/working set entry, and recent history display with the controlled owner account.
 - Complete owner-controlled production QA now that Vercel environment variables and Supabase Auth URL settings are configured.
-- Apply the Stage 5 cardio migration in Supabase, then test owner-controlled cardio logging on localhost or production.
+- Test owner-controlled cardio logging on localhost or production now that the Stage 5 cardio setup is applied in Supabase.
+- Review the synced 2026-06-27 preview shell in an owner logged-in browser after GitHub/Vercel update.
+- Review the synced 2026-06-27 History, Exercises, and Progress polish in an owner logged-in browser after GitHub/Vercel update.
 
 ## Next Planned Tasks
 
@@ -293,7 +340,9 @@ This file tracks what has been done, what failed, and what future Codex sessions
 - Test real workout session creation, refresh persistence, warmup set entry, working set entry, invalid set input handling, delete-set behavior, and recent history display on localhost using the controlled owner account.
 - Test real login/logout on production using the controlled owner account.
 - Test real production workout session creation, warmup/working set entry, refresh persistence, logout protection, and recent history display using the controlled owner account.
-- Apply `supabase/migrations/202606230001_create_cardio_schema_and_rls.sql` in the selected Supabase project, then test `/cardio/new` with Indoor Walking for 30 minutes and 3 km, refresh `/cardio`, add Running as a second entry, and confirm signed-out `/cardio` and `/cardio/new` redirect to login.
+- Test `/cardio/new` with a real owner cardio entry, such as Indoor Walking for 30 minutes, 3 km, and kcal; refresh `/cardio`, add Indoor Cycling with kcal only, and confirm signed-out `/cardio` and `/cardio/new` redirect to login.
+- In an owner logged-in browser session, open `/history`, switch Preview width between Phone, iPad, and Desktop, confirm the top tabs remain usable, and confirm the History cards show expected strength/cardio records.
+- In an owner logged-in browser session, open `/exercises` and `/progress`, confirm the Saved Exercises categories and progress trend accordions match the intended visual direction, then decide what polish should happen next.
 
 ## Things To Avoid Repeating
 

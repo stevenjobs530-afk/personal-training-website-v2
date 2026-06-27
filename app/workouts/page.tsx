@@ -228,90 +228,86 @@ export default async function WorkoutsPage() {
         ) : null}
 
         {history.length ? (
-          <ul className="space-y-3">
+          <ul className="space-y-2">
             {history.map((session) => {
               const notePreview = getShortPreview(session.notes);
               const visibleExerciseNames = session.exerciseNames.slice(0, 3);
               const hiddenExerciseCount =
                 session.exerciseNames.length - visibleExerciseNames.length;
+              const sessionTitle = visibleExerciseNames.length
+                ? visibleExerciseNames.join(", ")
+                : "Workout draft";
 
               return (
                 <li
-                  className="rounded-md border border-[var(--border)] bg-[var(--surface)] p-4 shadow-sm"
+                  className="overflow-hidden rounded-md border border-[var(--border)] bg-[var(--surface)] shadow-sm"
                   key={session.id}
                 >
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="min-w-0 space-y-2">
-                      <p className="text-lg font-black text-[var(--foreground)]">
+                  <div className="grid gap-3 px-3 py-3 sm:grid-cols-[8rem_minmax(0,1fr)_auto] sm:items-center">
+                    <div className="min-w-0">
+                      <p className="text-sm font-black text-[var(--foreground)]">
                         {formatWorkoutDate(session.workout_date)}
                       </p>
-                      <div className="flex flex-wrap gap-2 text-xs font-bold uppercase">
-                        <span className="rounded-md bg-[var(--surface-strong)] px-2 py-1 text-[var(--foreground)]">
-                          {session.setCount} {session.setCount === 1 ? "set" : "sets"}
-                        </span>
-                        <span className="rounded-md bg-[var(--accent-soft)] px-2 py-1 text-[var(--accent-strong)]">
-                          {session.exerciseCount}{" "}
-                          {session.exerciseCount === 1 ? "exercise" : "exercises"}
-                        </span>
-                      </div>
+                      <p className="mt-1 text-[0.68rem] font-bold uppercase text-[var(--muted)]">
+                        {session.setCount} {session.setCount === 1 ? "set" : "sets"} -{" "}
+                        {session.exerciseCount}{" "}
+                        {session.exerciseCount === 1 ? "exercise" : "exercises"}
+                      </p>
                     </div>
+
+                    <div className="min-w-0">
+                      <h2 className="truncate text-base font-black text-[var(--foreground)]">
+                        {sessionTitle}
+                      </h2>
+                      <p className="mt-1 truncate text-sm font-semibold text-[var(--muted)]">
+                        {notePreview ??
+                          (session.setCount
+                            ? "Open to review full set details."
+                            : "No sets recorded yet.")}
+                      </p>
+
+                      {session.previewSets.length ? (
+                        <details className="mt-1">
+                          <summary className="inline-flex cursor-pointer text-[0.68rem] font-black uppercase text-[var(--accent)]">
+                            Preview sets
+                          </summary>
+                          <ul className="mt-2 space-y-1 rounded-md bg-[var(--surface-strong)] px-2 py-2">
+                            {session.previewSets.map((set) => (
+                              <li
+                                className="truncate text-xs leading-5 text-[var(--muted)]"
+                                key={set.id}
+                              >
+                                <span className="font-bold text-[var(--foreground)]">
+                                  {set.exerciseName}
+                                </span>{" "}
+                                {set.setKind} {set.setNumber}: {set.weight} x{" "}
+                                {set.reps}
+                                {set.notes
+                                  ? ` - ${getShortPreview(set.notes, 52)}`
+                                  : ""}
+                              </li>
+                            ))}
+                          </ul>
+                        </details>
+                      ) : null}
+
+                      {hiddenExerciseCount > 0 ? (
+                        <p className="mt-1 text-xs font-bold uppercase text-[var(--muted)]">
+                          +{hiddenExerciseCount} more exercises
+                        </p>
+                      ) : null}
+                    </div>
+
                     <Link
-                      className="inline-flex min-h-10 shrink-0 items-center rounded-md border border-[var(--border)] bg-white px-3 text-sm font-bold text-[var(--accent)]"
+                      className="inline-flex min-h-10 shrink-0 items-center justify-center rounded-md border border-[var(--border)] bg-white px-3 text-sm font-bold text-[var(--accent)]"
                       href={`/workouts/${session.id}`}
                     >
                       Open
+                      <span aria-hidden="true" className="ml-2 text-base leading-none">
+                        &gt;
+                      </span>
                     </Link>
                   </div>
-
-                  {visibleExerciseNames.length ? (
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      {visibleExerciseNames.map((name) => (
-                        <span
-                          className="rounded-md border border-[var(--border)] bg-white px-2 py-1 text-sm font-semibold text-[var(--foreground)]"
-                          key={name}
-                        >
-                          {name}
-                        </span>
-                      ))}
-                      {hiddenExerciseCount > 0 ? (
-                        <span className="rounded-md bg-[var(--surface-strong)] px-2 py-1 text-sm font-semibold text-[var(--muted)]">
-                          +{hiddenExerciseCount} more
-                        </span>
-                      ) : null}
-                    </div>
-                  ) : null}
-
-                  {notePreview ? (
-                    <p className="mt-3 text-sm leading-6 text-[var(--muted)]">
-                      {notePreview}
-                    </p>
-                  ) : null}
-
-                  {session.previewSets.length ? (
-                    <details className="mt-3 rounded-md bg-[var(--surface-strong)]">
-                      <summary className="flex min-h-10 cursor-pointer items-center px-3 text-sm font-bold text-[var(--accent)]">
-                        Preview sets
-                      </summary>
-                      <ul className="space-y-2 border-t border-[var(--border)] p-3">
-                        {session.previewSets.map((set) => (
-                          <li
-                            className="text-sm leading-6 text-[var(--muted)]"
-                            key={set.id}
-                          >
-                            <span className="font-bold text-[var(--foreground)]">
-                              {set.exerciseName}
-                            </span>{" "}
-                            {set.setKind} {set.setNumber}: {set.weight} x {set.reps}
-                            {set.notes ? ` - ${getShortPreview(set.notes, 52)}` : ""}
-                          </li>
-                        ))}
-                      </ul>
-                    </details>
-                  ) : (
-                    <p className="mt-3 rounded-md bg-[var(--surface-strong)] p-3 text-sm font-semibold text-[var(--muted)]">
-                      No sets recorded yet.
-                    </p>
-                  )}
                 </li>
               );
             })}

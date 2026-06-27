@@ -25,16 +25,12 @@ type CardioExerciseRow = {
 };
 
 const categoryLabels: Record<string, string> = {
-  treadmill_running: "Treadmill running",
-  indoor_walking: "Indoor walking",
-  incline_walking: "Incline walking",
-  stair_climber: "Stair climber",
+  indoor_walking: "Indoor Walking",
+  outdoor_walking: "Outdoor Walking",
+  indoor_running: "Indoor Running",
+  outdoor_running: "Outdoor Running",
+  cycling: "Indoor Cycling",
   elliptical: "Elliptical",
-  cycling: "Cycling",
-  rowing: "Rowing",
-  outdoor_running: "Outdoor running",
-  outdoor_walking: "Outdoor walking",
-  other: "Other",
 };
 
 function formatCardioDate(value: string) {
@@ -75,28 +71,6 @@ function formatDistance(value: number | string | null, unit: string) {
   }
 
   return `${formatNumber(value)} ${unit}`;
-}
-
-function getPaceLabel({
-  distanceUnit,
-  distanceValue,
-  durationSeconds,
-}: {
-  distanceUnit: string;
-  distanceValue: number | string | null;
-  durationSeconds: number;
-}) {
-  const distanceNumber = Number(distanceValue);
-
-  if (!Number.isFinite(distanceNumber) || distanceNumber <= 0) {
-    return "Pace unavailable";
-  }
-
-  const paceSeconds = durationSeconds / distanceNumber;
-  const minutes = Math.floor(paceSeconds / 60);
-  const seconds = Math.round(paceSeconds % 60);
-
-  return `${minutes}:${String(seconds).padStart(2, "0")} / ${distanceUnit}`;
 }
 
 export default async function CardioPage() {
@@ -144,11 +118,11 @@ export default async function CardioPage() {
       >
         {error || exercisesResult.error ? (
           <div
-            className="rounded-md border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-700"
+            className="rounded-md border border-amber-200 bg-amber-50 p-4 text-sm font-semibold text-amber-800"
             role="alert"
           >
-            Cardio history could not be loaded. If Stage 5 was just added, apply
-            the cardio migration in Supabase first.
+            Cardio history is not available yet. Apply the cardio Supabase setup,
+            then refresh this page.
           </div>
         ) : null}
 
@@ -177,7 +151,9 @@ export default async function CardioPage() {
                       </p>
                     </div>
                     <p className="text-sm font-semibold text-[var(--muted)]">
-                      {entry.calories === null ? "Calories optional" : `${entry.calories} cal`}
+                      {entry.calories === null
+                        ? "No kcal recorded"
+                        : `${entry.calories} kcal`}
                     </p>
                   </div>
 
@@ -200,14 +176,12 @@ export default async function CardioPage() {
                     </div>
                     <div className="rounded-md bg-[var(--surface-strong)] p-3">
                       <p className="text-xs font-bold uppercase text-[var(--muted)]">
-                        Pace
+                        Energy
                       </p>
                       <p className="mt-1 text-base font-bold text-[var(--foreground)]">
-                        {getPaceLabel({
-                          distanceUnit: entry.distance_unit,
-                          distanceValue: entry.distance_value,
-                          durationSeconds: entry.duration_seconds,
-                        })}
+                        {entry.calories === null
+                          ? "No kcal recorded"
+                          : `${entry.calories} kcal`}
                       </p>
                     </div>
                   </div>

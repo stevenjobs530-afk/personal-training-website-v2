@@ -2,7 +2,11 @@ import { AppShell } from "../_components/app-shell";
 import { PlaceholderPage } from "../_components/placeholder-page";
 import { requireAuth } from "@/lib/auth/require-auth";
 import { createClient } from "@/lib/supabase/server";
-import { ExerciseManager, type ExerciseListItem } from "./exercise-manager";
+import {
+  ExerciseManager,
+  type CardioExerciseListItem,
+  type ExerciseListItem,
+} from "./exercise-manager";
 
 export const dynamic = "force-dynamic";
 
@@ -13,8 +17,13 @@ export default async function ExercisesPage() {
     .from("exercises")
     .select("id, name, notes")
     .order("name", { ascending: true });
+  const cardioResult = await supabase
+    .from("cardio_exercises")
+    .select("id, name, notes, category")
+    .order("name", { ascending: true });
 
   const exercises: ExerciseListItem[] = data ?? [];
+  const cardioExercises: CardioExerciseListItem[] = cardioResult.data ?? [];
 
   return (
     <AppShell>
@@ -31,7 +40,11 @@ export default async function ExercisesPage() {
             Exercises could not be loaded. Try refreshing the page.
           </div>
         ) : null}
-        <ExerciseManager exercises={exercises} />
+        <ExerciseManager
+          cardioExercises={cardioExercises}
+          cardioLoadError={cardioResult.error ? true : false}
+          exercises={exercises}
+        />
       </PlaceholderPage>
     </AppShell>
   );

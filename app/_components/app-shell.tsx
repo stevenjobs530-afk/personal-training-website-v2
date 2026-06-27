@@ -1,10 +1,12 @@
 import Link from "next/link";
 import { signOut } from "../auth/actions";
+import { PreviewFrame, TopNavigation } from "./preview-frame";
 
 const navItems = [
   { href: "/dashboard", label: "Today" },
   { href: "/workouts", label: "Workouts" },
   { href: "/cardio", label: "Cardio" },
+  { href: "/history", label: "History" },
   { href: "/exercises", label: "Exercises" },
   { href: "/progress", label: "Progress" },
   { href: "/settings", label: "Settings" },
@@ -16,59 +18,40 @@ type AppShellProps = {
 
 export function AppShell({ children }: AppShellProps) {
   return (
-    <div className="min-h-screen bg-[var(--background)]">
-      <header className="border-b border-[var(--border)] bg-[var(--surface)]">
-        <div className="mx-auto flex w-full max-w-5xl items-center justify-between gap-4 px-4 py-4 sm:px-6">
-          <Link href="/dashboard" className="flex min-h-11 flex-col justify-center">
-            <span className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--muted)]">
-              Private Log
-            </span>
-            <span className="text-lg font-bold text-[var(--foreground)]">
-              Personal Training
-            </span>
-          </Link>
-          <form action={signOut}>
-            <button
-              className="inline-flex min-h-11 items-center rounded-md border border-[var(--border)] bg-transparent px-4 text-sm font-semibold text-[var(--foreground)]"
-              type="submit"
-            >
-              Sign out
-            </button>
-          </form>
-        </div>
-      </header>
+    <div className="min-h-screen bg-[var(--background)] px-3 py-4 sm:px-5">
+      <PreviewFrame>
+        <div className="overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-sm">
+          <header className="border-b border-[var(--border)] bg-[var(--surface)]">
+            <div className="flex items-center justify-between gap-4 px-4 py-5 sm:px-6">
+              <Link
+                href="/dashboard"
+                className="flex min-h-11 min-w-0 flex-col justify-center"
+              >
+                <span className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--muted)]">
+                  Private Log
+                </span>
+                <span className="truncate text-xl font-bold text-[var(--foreground)]">
+                  Personal Training
+                </span>
+              </Link>
+              <form action={signOut}>
+                <button
+                  className="inline-flex min-h-11 shrink-0 items-center rounded-md border border-[var(--border)] bg-transparent px-4 text-sm font-semibold text-[var(--foreground)]"
+                  type="submit"
+                >
+                  Sign out
+                </button>
+              </form>
+            </div>
+          </header>
 
-      <main className="mx-auto w-full max-w-5xl px-4 pb-28 pt-6 sm:px-6 sm:pb-10">
-        {children}
-      </main>
+          <TopNavigation items={navItems} />
 
-      <nav className="fixed inset-x-0 bottom-0 border-t border-[var(--border)] bg-[var(--surface)] sm:hidden">
-        <div className="grid grid-cols-6">
-          {navItems.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className="flex min-h-16 items-center justify-center px-1 text-center text-xs font-semibold text-[var(--muted)]"
-            >
-              {item.label}
-            </Link>
-          ))}
+          <main className="bg-[var(--background)] px-4 pb-10 pt-6 sm:px-6 lg:px-8">
+            {children}
+          </main>
         </div>
-      </nav>
-
-      <nav className="hidden border-t border-[var(--border)] bg-[var(--surface)] sm:block">
-        <div className="mx-auto flex w-full max-w-5xl gap-2 px-6 py-4">
-          {navItems.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className="inline-flex min-h-11 items-center rounded-md px-4 text-sm font-semibold text-[var(--muted)] hover:bg-[var(--surface-strong)] hover:text-[var(--foreground)]"
-            >
-              {item.label}
-            </Link>
-          ))}
-        </div>
-      </nav>
+      </PreviewFrame>
     </div>
   );
 }

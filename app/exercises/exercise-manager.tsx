@@ -14,7 +14,16 @@ export type ExerciseListItem = {
   notes: string | null;
 };
 
+export type CardioExerciseListItem = {
+  category: string;
+  id: string;
+  name: string;
+  notes: string | null;
+};
+
 type ExerciseManagerProps = {
+  cardioExercises: CardioExerciseListItem[];
+  cardioLoadError: boolean;
   exercises: ExerciseListItem[];
 };
 
@@ -230,35 +239,164 @@ function ExerciseCard({ exercise }: { exercise: ExerciseListItem }) {
   );
 }
 
-export function ExerciseManager({ exercises }: ExerciseManagerProps) {
+const cardioCategoryLabels: Record<string, string> = {
+  indoor_walking: "Indoor Walking",
+  outdoor_walking: "Outdoor Walking",
+  indoor_running: "Indoor Running",
+  outdoor_running: "Outdoor Running",
+  cycling: "Indoor Cycling",
+  elliptical: "Elliptical",
+};
+
+function CardioExerciseCard({ exercise }: { exercise: CardioExerciseListItem }) {
+  const notePreview = getNotePreview(exercise.notes);
+
+  return (
+    <li className="flex h-full min-h-36 flex-col justify-between rounded-md border border-[var(--border)] bg-[var(--surface)] p-3 shadow-sm">
+      <div className="flex gap-3">
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md bg-[var(--accent-soft)] text-base font-black text-[var(--accent-strong)]">
+          {getExerciseInitial(exercise.name)}
+        </div>
+        <div className="min-w-0 flex-1">
+          <h3 className="truncate text-base font-black text-[var(--foreground)]">
+            {exercise.name}
+          </h3>
+          <p className="mt-1 text-sm leading-5 text-[var(--muted)]">
+            {notePreview ?? "No notes yet"}
+          </p>
+        </div>
+      </div>
+
+      <div className="mt-3 rounded-md bg-[var(--surface-strong)] px-3 py-3 text-sm font-bold text-[var(--accent)]">
+        {cardioCategoryLabels[exercise.category] ?? "Cardio"}
+      </div>
+    </li>
+  );
+}
+
+function ExerciseCategory({
+  children,
+  count,
+  defaultOpen,
+  description,
+  icon,
+  title,
+}: {
+  children: React.ReactNode;
+  count: number;
+  defaultOpen?: boolean;
+  description: string;
+  icon: string;
+  title: string;
+}) {
+  return (
+    <details
+      className="rounded-md border border-[var(--border)] bg-[var(--surface)] p-3 shadow-sm"
+      open={defaultOpen}
+    >
+      <summary className="flex min-h-14 cursor-pointer items-center justify-between gap-4">
+        <div className="flex min-w-0 items-center gap-3">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[var(--accent-soft)] text-base font-black text-[var(--accent-strong)]">
+            {icon}
+          </div>
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <h2 className="text-xl font-black text-[var(--foreground)]">
+                {title}
+              </h2>
+              <span className="rounded-md bg-[var(--surface-strong)] px-2 py-1 text-[0.68rem] font-black uppercase text-[var(--muted)]">
+                {count} {count === 1 ? "exercise" : "exercises"}
+              </span>
+            </div>
+            <p className="mt-1 text-sm leading-5 text-[var(--muted)]">
+              {description}
+            </p>
+          </div>
+        </div>
+        <span className="shrink-0 text-lg font-black text-[var(--foreground)]">
+          ^
+        </span>
+      </summary>
+
+      <div className="pt-4">{children}</div>
+    </details>
+  );
+}
+
+export function ExerciseManager({
+  cardioExercises,
+  cardioLoadError,
+  exercises,
+}: ExerciseManagerProps) {
   return (
     <div className="space-y-6">
       <AddExerciseForm />
 
       <section className="space-y-3">
         <div className="flex min-h-11 items-center justify-between">
-          <h2 className="text-xl font-bold text-[var(--foreground)]">
-            Saved exercises
+          <h2 className="text-2xl font-black text-[var(--foreground)]">
+            Saved Exercises
           </h2>
           <span className="text-sm font-semibold text-[var(--muted)]">
-            {exercises.length}
+            {exercises.length + cardioExercises.length}
           </span>
         </div>
 
-        {exercises.length ? (
-          <ul className="grid gap-3 sm:grid-cols-2">
-            {exercises.map((exercise) => (
-              <ExerciseCard
-                key={`${exercise.id}-${exercise.name}-${exercise.notes ?? ""}`}
-                exercise={exercise}
-              />
-            ))}
-          </ul>
-        ) : (
-          <div className="rounded-md border border-dashed border-[var(--border)] bg-[var(--surface)] p-5 text-base leading-7 text-[var(--muted)]">
-            No exercises saved yet. Add your first machine or movement.
-          </div>
-        )}
+        <div className="space-y-3">
+          <ExerciseCategory
+            count={exercises.length}
+            defaultOpen
+            description="Strength and resistance training to build muscle and improve power."
+            icon="H"
+            title="Anaerobic"
+          >
+            {exercises.length ? (
+              <ul className="grid items-stretch gap-3 sm:grid-cols-2">
+                {exercises.map((exercise) => (
+                  <ExerciseCard
+                    key={`${exercise.id}-${exercise.name}-${exercise.notes ?? ""}`}
+                    exercise={exercise}
+                  />
+                ))}
+              </ul>
+            ) : (
+              <div className="rounded-md border border-dashed border-[var(--border)] bg-[var(--background)] p-5 text-base leading-7 text-[var(--muted)]">
+                No strength exercises saved yet.
+              </div>
+            )}
+          </ExerciseCategory>
+
+          <ExerciseCategory
+            count={cardioExercises.length}
+            defaultOpen
+            description="Cardiovascular training to improve endurance and overall health."
+            icon="A"
+            title="Aerobic"
+          >
+            {cardioLoadError ? (
+              <div
+                className="rounded-md border border-amber-200 bg-amber-50 p-4 text-sm font-semibold text-amber-800"
+                role="alert"
+              >
+                Aerobic exercises are not available yet. Apply the cardio Supabase
+                setup, then refresh this page.
+              </div>
+            ) : cardioExercises.length ? (
+              <ul className="grid items-stretch gap-3 sm:grid-cols-2">
+                {cardioExercises.map((exercise) => (
+                  <CardioExerciseCard
+                    key={`${exercise.id}-${exercise.name}-${exercise.notes ?? ""}`}
+                    exercise={exercise}
+                  />
+                ))}
+              </ul>
+            ) : (
+              <div className="rounded-md border border-dashed border-[var(--border)] bg-[var(--background)] p-5 text-base leading-7 text-[var(--muted)]">
+                No aerobic exercises saved yet.
+              </div>
+            )}
+          </ExerciseCategory>
+        </div>
       </section>
     </div>
   );

@@ -41,6 +41,7 @@ Planned routes are documented in `ROADMAP.md`. The first implementation should k
 - protected workout entry flow
 - protected exercise list/add flow
 - protected recent history view
+- protected combined history overview for strength and cardio sessions
 - simple settings route for sign out and setup status
 
 The UI should be mobile-first. Desktop and iPad layouts can widen the same simple flows rather than introducing a separate complex dashboard.
@@ -55,7 +56,7 @@ The backend is Supabase:
 - `workout_sessions` stores workout dates.
 - `workout_sets` stores warmup and working set rows.
 - `cardio_exercises` stores user-owned aerobic/cardio exercise names and categories.
-- `cardio_entries` stores duration, distance, optional calories, and notes for cardio work.
+- `cardio_entries` stores duration, required kcal, conditional distance, and notes for cardio work.
 
 The planned schema is documented in `DATABASE_SCHEMA.md`.
 
@@ -108,6 +109,7 @@ Desktop should support review and maintenance, but iPhone recording speed is the
 - record warmup sets and working sets
 - record weight and reps
 - view recent workout history
+- view a combined strength/cardio history overview
 - record aerobic/cardio work separately from strength sets
 - simple refresh/refetch behavior
 - mobile-friendly layout
@@ -130,9 +132,9 @@ These can be revisited only after the core recording and authentication flow is 
 
 ## Cardio Logging Boundary
 
-Stage 5 adds a separate cardio model for aerobic work such as treadmill running,
-indoor walking, incline walking, stair climber, elliptical, cycling, rowing,
-outdoor running, outdoor walking, and other cardio. Cardio
-entries use duration, distance, distance unit, optional calories, and optional
-notes. They should not be forced into `workout_sets`, because strength sets use
-weight, reps, set number, and warmup/working kind.
+Stage 5 adds a separate cardio model for aerobic work. Indoor Walking, Outdoor
+Walking, Indoor Running, and Outdoor Running require distance plus kcal. Indoor
+Cycling and Elliptical are recorded by kcal without distance. Cardio entries use
+duration, conditional distance, distance unit, kcal, and optional notes. They
+should not be forced into `workout_sets`, because strength sets use weight, reps,
+set number, and warmup/working kind.

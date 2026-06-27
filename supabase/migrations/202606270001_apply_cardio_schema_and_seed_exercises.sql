@@ -1,9 +1,9 @@
--- Stage 5: Aerobic / cardio logging schema and RLS.
--- This keeps cardio separate from weight-training workout_sets.
+-- Apply aerobic/cardio logging to an existing Supabase project.
+-- Safe to run after the base app tables already exist.
 
 begin;
 
-create table public.cardio_exercises (
+create table if not exists public.cardio_exercises (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade,
   name text not null,
@@ -11,66 +11,92 @@ create table public.cardio_exercises (
   default_distance_unit text not null default 'km',
   notes text,
   created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now(),
-  constraint cardio_exercises_name_not_blank check (length(btrim(name)) > 0),
-  constraint cardio_exercises_category_check check (
-    category in (
-      'indoor_walking',
-      'outdoor_walking',
-      'indoor_running',
-      'outdoor_running',
-      'cycling',
-      'elliptical'
-    )
-  ),
-  constraint cardio_exercises_default_distance_unit_check check (
-    default_distance_unit in ('km', 'mi')
-  )
+  updated_at timestamptz not null default now()
 );
 
-create table public.cardio_entries (
+create table if not exists public.cardio_entries (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade,
   cardio_exercise_id uuid not null references public.cardio_exercises(id) on delete restrict,
   cardio_date date not null,
   duration_seconds integer not null,
   distance_value numeric(8, 2),
-  distance_unit text not null,
+  distance_unit text not null default 'km',
   calories integer not null,
   notes text,
   created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now(),
-  constraint cardio_entries_duration_positive check (duration_seconds > 0),
-  constraint cardio_entries_distance_positive check (
-    distance_value is null or distance_value > 0
-  ),
-  constraint cardio_entries_distance_unit_check check (distance_unit in ('km', 'mi')),
-  constraint cardio_entries_calories_positive check (
-    calories > 0
-  )
+  updated_at timestamptz not null default now()
 );
+
+alter table public.cardio_exercises
+  drop constraint if exists cardio_exercises_name_not_blank,
+  drop constraint if exists cardio_exercises_category_check,
+  drop constraint if exists cardio_exercises_default_distance_unit_check;
+
+alter table public.cardio_exercises
+  add constraint cardio_exercises_name_not_blank
+    check (length(btrim(name)) > 0),
+  add constraint cardio_exercises_category_check
+    check (
+      category in (
+        'indoor_walking',
+        'outdoor_walking',
+        'indoor_running',
+        'outdoor_running',
+        'cycling',
+        'elliptical'
+      )
+    ),
+  add constraint cardio_exercises_default_distance_unit_check
+    check (default_distance_unit in ('km', 'mi'));
+
+alter table public.cardio_entries
+  drop constraint if exists cardio_entries_duration_positive,
+  drop constraint if exists cardio_entries_distance_nonnegative,
+  drop constraint if exists cardio_entries_distance_positive,
+  drop constraint if exists cardio_entries_distance_unit_check,
+  drop constraint if exists cardio_entries_calories_nonnegative,
+  drop constraint if exists cardio_entries_calories_positive;
+
+alter table public.cardio_entries
+  alter column distance_unit set default 'km',
+  alter column calories set not null,
+  alter column duration_seconds set not null,
+  alter column cardio_date set not null,
+  alter column user_id set not null,
+  alter column cardio_exercise_id set not null,
+  add constraint cardio_entries_duration_positive
+    check (duration_seconds > 0),
+  add constraint cardio_entries_distance_positive
+    check (distance_value is null or distance_value > 0),
+  add constraint cardio_entries_distance_unit_check
+    check (distance_unit in ('km', 'mi')),
+  add constraint cardio_entries_calories_positive
+    check (calories > 0);
 
 comment on table public.cardio_exercises is
   'User-owned aerobic/cardio exercise names and categories.';
 comment on table public.cardio_entries is
   'User-owned aerobic/cardio records measured by duration, conditional distance, and kcal.';
 
-create unique index cardio_exercises_user_name_unique
+create unique index if not exists cardio_exercises_user_name_unique
   on public.cardio_exercises (user_id, lower(btrim(name)));
 
-create index cardio_exercises_user_category_idx
+create index if not exists cardio_exercises_user_category_idx
   on public.cardio_exercises (user_id, category, name);
 
-create index cardio_entries_user_date_idx
+create index if not exists cardio_entries_user_date_idx
   on public.cardio_entries (user_id, cardio_date desc, created_at desc);
 
-create index cardio_entries_exercise_id_idx
+create index if not exists cardio_entries_exercise_id_idx
   on public.cardio_entries (cardio_exercise_id);
 
+drop trigger if exists cardio_exercises_set_updated_at on public.cardio_exercises;
 create trigger cardio_exercises_set_updated_at
 before update on public.cardio_exercises
 for each row execute function public.set_updated_at();
 
+drop trigger if exists cardio_entries_set_updated_at on public.cardio_entries;
 create trigger cardio_entries_set_updated_at
 before update on public.cardio_entries
 for each row execute function public.set_updated_at();
@@ -86,9 +112,9 @@ declare
 begin
   select category
   into exercise_category
-    from public.cardio_exercises
-    where id = new.cardio_exercise_id
-      and user_id = new.user_id;
+  from public.cardio_exercises
+  where id = new.cardio_exercise_id
+    and user_id = new.user_id;
 
   if exercise_category is null then
     raise exception 'cardio_entry cardio_exercise_id must belong to the same user_id'
@@ -116,6 +142,7 @@ begin
 end;
 $$;
 
+drop trigger if exists cardio_entries_validate_ownership on public.cardio_entries;
 create trigger cardio_entries_validate_ownership
 before insert or update of user_id, cardio_exercise_id, distance_value
 on public.cardio_entries
@@ -143,6 +170,15 @@ revoke truncate, references, trigger on table
   public.cardio_exercises,
   public.cardio_entries
 from authenticated;
+
+drop policy if exists cardio_exercises_select_own on public.cardio_exercises;
+drop policy if exists cardio_exercises_insert_own on public.cardio_exercises;
+drop policy if exists cardio_exercises_update_own on public.cardio_exercises;
+drop policy if exists cardio_exercises_delete_own on public.cardio_exercises;
+drop policy if exists cardio_entries_select_own on public.cardio_entries;
+drop policy if exists cardio_entries_insert_own on public.cardio_entries;
+drop policy if exists cardio_entries_update_own on public.cardio_entries;
+drop policy if exists cardio_entries_delete_own on public.cardio_entries;
 
 create policy cardio_exercises_select_own
 on public.cardio_exercises

@@ -178,6 +178,7 @@ export async function createWorkoutSession(
   }
 
   revalidatePath("/workouts");
+  revalidatePath("/history");
   redirect(`/workouts/${data.id}`);
 }
 
@@ -260,6 +261,7 @@ export async function createWorkoutSet(
   }
 
   revalidatePath("/workouts");
+  revalidatePath("/history");
   revalidatePath(`/workouts/${sessionId}`);
 
   return {
@@ -327,6 +329,7 @@ export async function createWorkoutExercise(
   }
 
   revalidatePath("/exercises");
+  revalidatePath("/history");
   revalidatePath(`/workouts/${sessionId}`);
 
   return {
@@ -380,6 +383,7 @@ export async function deleteWorkoutSet(
   }
 
   revalidatePath("/workouts");
+  revalidatePath("/history");
   revalidatePath(`/workouts/${sessionId}`);
 
   return {

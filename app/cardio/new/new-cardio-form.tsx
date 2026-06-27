@@ -1,11 +1,12 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useMemo, useState } from "react";
+import { createCardioEntry, type CardioActionState } from "../actions";
 import {
   cardioCategories,
-  createCardioEntry,
-  type CardioActionState,
-} from "../actions";
+  cardioCategoryLabels,
+  needsCardioDistance,
+} from "../cardio-options";
 
 export type CardioExerciseOption = {
   id: string;
@@ -22,19 +23,6 @@ type NewCardioFormProps = {
 const initialActionState: CardioActionState = {
   status: "idle",
   message: "",
-};
-
-const categoryLabels: Record<(typeof cardioCategories)[number], string> = {
-  treadmill_running: "Treadmill running",
-  indoor_walking: "Indoor walking",
-  incline_walking: "Incline walking",
-  stair_climber: "Stair climber",
-  elliptical: "Elliptical",
-  cycling: "Cycling",
-  rowing: "Rowing machine",
-  outdoor_running: "Outdoor running",
-  outdoor_walking: "Outdoor walking",
-  other: "Other cardio",
 };
 
 function ActionMessage({ state }: { state: CardioActionState }) {
@@ -59,6 +47,15 @@ export function NewCardioForm({ defaultDate, exercises }: NewCardioFormProps) {
     createCardioEntry,
     initialActionState,
   );
+  const [selectedExerciseId, setSelectedExerciseId] = useState("");
+  const [newCategory, setNewCategory] =
+    useState<(typeof cardioCategories)[number]>("indoor_walking");
+  const selectedExercise = useMemo(
+    () => exercises.find((exercise) => exercise.id === selectedExerciseId),
+    [exercises, selectedExerciseId],
+  );
+  const selectedCategory = selectedExercise?.category ?? newCategory;
+  const distanceIsRequired = needsCardioDistance(selectedCategory);
 
   return (
     <form
@@ -96,6 +93,8 @@ export function NewCardioForm({ defaultDate, exercises }: NewCardioFormProps) {
             disabled={pending}
             id="cardio-exercise-id"
             name="cardio_exercise_id"
+            onChange={(event) => setSelectedExerciseId(event.target.value)}
+            value={selectedExerciseId}
           >
             <option value="">Create new below</option>
             {exercises.map((exercise) => (
@@ -137,14 +136,19 @@ export function NewCardioForm({ defaultDate, exercises }: NewCardioFormProps) {
               </label>
               <select
                 className="min-h-12 w-full rounded-md border border-[var(--border)] bg-white px-3 text-base outline-none focus:border-[var(--accent)] disabled:bg-[var(--surface-strong)]"
-                defaultValue="indoor_walking"
                 disabled={pending}
                 id="category"
                 name="category"
+                onChange={(event) =>
+                  setNewCategory(
+                    event.target.value as (typeof cardioCategories)[number],
+                  )
+                }
+                value={newCategory}
               >
                 {cardioCategories.map((category) => (
                   <option key={category} value={category}>
-                    {categoryLabels[category]}
+                    {cardioCategoryLabels[category]}
                   </option>
                 ))}
               </select>
@@ -192,12 +196,18 @@ export function NewCardioForm({ defaultDate, exercises }: NewCardioFormProps) {
             disabled={pending}
             id="distance-value"
             inputMode="decimal"
-            min="0"
+            min="0.01"
             name="distance_value"
-            placeholder="3"
+            placeholder={distanceIsRequired ? "3" : "Leave empty"}
+            required={distanceIsRequired}
             step="any"
             type="number"
           />
+          <p className="text-xs leading-5 text-[var(--muted)]">
+            {distanceIsRequired
+              ? "Required for walking and running."
+              : "Cycling and elliptical only need kcal."}
+          </p>
         </div>
 
         <div className="space-y-2">
@@ -220,9 +230,9 @@ export function NewCardioForm({ defaultDate, exercises }: NewCardioFormProps) {
         </div>
       </div>
 
-      <details className="rounded-md border border-[var(--border)] bg-white">
+      <details className="rounded-md border border-[var(--border)] bg-white" open>
         <summary className="flex min-h-12 cursor-pointer items-center px-3 text-sm font-semibold text-[var(--foreground)]">
-          Optional details
+          Energy and notes
         </summary>
         <div className="grid gap-3 border-t border-[var(--border)] p-3">
           <div className="space-y-2">
@@ -230,19 +240,23 @@ export function NewCardioForm({ defaultDate, exercises }: NewCardioFormProps) {
               className="text-sm font-semibold text-[var(--foreground)]"
               htmlFor="calories"
             >
-              Calories
+              Energy consumed
             </label>
             <input
               className="min-h-12 w-full rounded-md border border-[var(--border)] bg-white px-3 text-base outline-none focus:border-[var(--accent)] disabled:bg-[var(--surface-strong)]"
               disabled={pending}
               id="calories"
               inputMode="numeric"
-              min="0"
+              min="1"
               name="calories"
-              placeholder="Optional"
+              placeholder="kcal"
+              required
               step="1"
               type="number"
             />
+            <p className="text-xs leading-5 text-[var(--muted)]">
+              Record each cardio session by kcal instead of weight progression.
+            </p>
           </div>
 
           <div className="space-y-2">

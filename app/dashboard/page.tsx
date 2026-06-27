@@ -15,7 +15,7 @@ const trainingChoices = [
   {
     href: "/cardio/new",
     label: "Cardio",
-    description: "Walking, running, stair climber, elliptical, cycling, rowing.",
+    description: "Walking and running with distance, cycling and elliptical by kcal.",
     cta: "Record cardio",
   },
 ];

@@ -44,15 +44,15 @@ export default async function NewCardioPage() {
       <PlaceholderPage
         eyebrow="New Cardio"
         title="Record cardio"
-        description="Save a simple aerobic entry with duration, distance, and optional calories."
+        description="Save aerobic work by kcal, with distance for walking and running."
       >
         {error ? (
           <div
-            className="rounded-md border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-700"
+            className="rounded-md border border-amber-200 bg-amber-50 p-4 text-sm font-semibold text-amber-800"
             role="alert"
           >
-            Cardio exercises could not be loaded. If Stage 5 was just added, apply
-            the cardio migration in Supabase first.
+            Cardio exercises are not available yet. Apply the cardio Supabase
+            setup, then refresh this page.
           </div>
         ) : null}
         <NewCardioForm

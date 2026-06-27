@@ -68,9 +68,9 @@ This file records important project decisions. Add new entries when the project 
 
 ### Decision: Keep cardio logging separate from strength workout sets
 
-- **Reason:** Strength training sets use weight, reps, set number, and warmup/working kind. Aerobic/cardio work is better represented by duration, distance, distance unit, optional calories, and notes.
+- **Reason:** Strength training sets use weight, reps, set number, and warmup/working kind. Aerobic/cardio work is better represented by duration, required kcal, conditional distance, distance unit, and notes.
 - **Alternatives considered:** reuse `workout_sets` for cardio, add loosely typed notes to strength sessions, or wait for a larger analytics redesign.
-- **Consequences:** Stage 5 adds `cardio_exercises` and `cardio_entries` with their own RLS policies and protected `/cardio` routes. The existing weight-training tables and workout flow remain unchanged.
+- **Consequences:** Stage 5 adds `cardio_exercises` and `cardio_entries` with their own RLS policies and protected `/cardio` routes. Walking and running entries require distance plus kcal, while cycling and elliptical entries are kcal-only. The existing weight-training tables and workout flow remain unchanged.
 
 ## 2026-06-27
 
@@ -79,3 +79,15 @@ This file records important project decisions. Add new entries when the project 
 - **Reason:** The owner wants external coding assistants such as Claude to read the project source code and propose or make further changes from GitHub.
 - **Alternatives considered:** keep the repository private and grant collaborator access, or share a local/archive copy of the source code.
 - **Consequences:** The repository `stevenjobs530-afk/personal-training-website-v2` is public, but the product boundary is unchanged: deployed app content remains login-only, public signup stays out of Version 1, and secrets such as `.env.local`, passwords, cookies, tokens, and Supabase service role keys must never be committed or copied into docs.
+
+### Decision: Add a protected History overview and local preview-width controls
+
+- **Reason:** The owner wants the app shell to match a page-level preview layout with top navigation and quick Phone/iPad/Desktop width checks before syncing changes to GitHub.
+- **Alternatives considered:** keep the mobile bottom navigation only, or fold all history work into `/workouts`.
+- **Consequences:** `/history` is a protected read-only route that combines existing strength and cardio records without adding tables. The preview-width control is a browser-local UI aid and does not change authentication, RLS, Supabase schema, or public signup boundaries.
+
+### Decision: Add lightweight read-only progress trends
+
+- **Reason:** The owner wants the Progress page to resemble a searchable exercise-progress view with collapsible exercise rows and trend context.
+- **Alternatives considered:** keep `/progress` as a placeholder, or add a charting dependency and a larger analytics layer.
+- **Consequences:** `/progress` now derives simple trends from existing Supabase rows. Strength charts average working-set weights by exercise and date, while cardio charts average kcal by cardio exercise when the cardio tables are available. No analytics tables, schema changes, AI analysis, Realtime, public signup, or new dependencies were added.

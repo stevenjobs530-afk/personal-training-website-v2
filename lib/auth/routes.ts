@@ -5,6 +5,7 @@ const protectedRoutePrefixes = [
   dashboardPath,
   "/workouts",
   "/cardio",
+  "/history",
   "/exercises",
   "/progress",
   "/settings",

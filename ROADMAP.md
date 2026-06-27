@@ -24,6 +24,8 @@ Version 1 should include:
 - record weight and reps
 - add simple notes where useful
 - view recent workout history
+- view a combined strength/cardio training history overview
+- view lightweight derived exercise progress trends
 - record aerobic/cardio entries separately from strength sets
 - mobile-friendly layout for iPhone
 - responsive layout for iPad and macOS
@@ -39,15 +41,19 @@ UX Rework 1-5 confirms the Version 1 workout entry flow is now structured enough
 - `/workouts` recent history reads sessions, sets, and exercises, then groups sets under each exercise name.
 - Session notes and set notes remain optional context fields, not the primary place for structured workout data.
 
-Do not add progress charts yet. The next progress stage can derive summaries from `workout_sets` joined to `workout_sessions` and `exercises` after owner logged-in workflow QA confirms live writes and refresh persistence.
+The 2026-06-27 local preview adds a lightweight derived progress page. Strength trends are calculated from working sets joined to workout sessions and exercises; warm-ups are excluded. Cardio kcal trends can be shown from `cardio_entries` when the Stage 5 cardio setup is available. This remains a read-only view and does not add analytics tables, AI analysis, Realtime, or advanced dashboards.
 
 Stage 5 adds an Aerobic / Cardio Logging MVP:
 
 - `/cardio` shows recent cardio entries.
-- `/cardio/new` records date, cardio exercise, category for new exercise names, duration, distance, distance unit, optional calories, and optional notes.
+- `/cardio/new` records date, cardio exercise, category for new exercise names, duration, required kcal, conditional distance, distance unit, and optional notes.
 - Cardio data uses `cardio_exercises` and `cardio_entries` rather than `workout_sets`.
-- Pace is display-only when duration and distance are available.
+- Indoor/Outdoor Walking and Indoor/Outdoor Running require distance plus kcal; Indoor Cycling and Elliptical are kcal-only.
 - This stage does not add charts, AI analysis, Realtime, social features, payments, public profiles, or advanced dashboards.
+
+The 2026-06-27 local preview update adds a protected `/history` overview that combines strength sessions and cardio entries into a frequency grid and compact session cards. This is a read-only history surface and does not change the underlying workout or cardio data models.
+
+The later 2026-06-27 polish pass makes `/history` collapsible by year, month, and day; groups `/exercises` into Anaerobic and Aerobic sections; and changes `/progress` from a placeholder into a searchable accordion with simple SVG trend charts.
 
 ## Version 1 Route Candidates
 
@@ -58,6 +64,7 @@ Stage 5 adds an Aerobic / Cardio Logging MVP:
 - `/workouts/[sessionId]`
 - `/cardio`
 - `/cardio/new`
+- `/history`
 - `/exercises`
 - `/progress`
 - `/settings`
@@ -76,9 +83,9 @@ Later improvements may include:
 - total volume over time
 - weekly training frequency
 - working set trends
-- cardio pace, distance, duration, and frequency trends
+- cardio kcal, distance, duration, and frequency trends
 - CSV export
-- optional charts
+- richer optional charts
 - optional PWA improvements
 - better offline handling
 - import tools for old records

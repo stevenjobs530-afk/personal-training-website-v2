@@ -4,29 +4,18 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { hasSupabaseEnv } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/server";
+import {
+  cardioCategories,
+  distanceUnits,
+  needsCardioDistance,
+  type CardioCategory,
+  type DistanceUnit,
+} from "./cardio-options";
 
 export type CardioActionState = {
   status: "idle" | "success" | "error";
   message: string;
 };
-
-export const cardioCategories = [
-  "treadmill_running",
-  "indoor_walking",
-  "incline_walking",
-  "stair_climber",
-  "elliptical",
-  "cycling",
-  "rowing",
-  "outdoor_running",
-  "outdoor_walking",
-  "other",
-] as const;
-
-export const distanceUnits = ["km", "mi"] as const;
-
-type CardioCategory = (typeof cardioCategories)[number];
-type DistanceUnit = (typeof distanceUnits)[number];
 
 type ActionContext =
   | {
@@ -107,28 +96,14 @@ function parsePositiveInteger(value: string) {
   return numberValue;
 }
 
-function parseOptionalNonNegativeNumber(value: string) {
+function parseOptionalPositiveNumber(value: string) {
   if (!value) {
     return null;
   }
 
   const numberValue = Number(value);
 
-  if (!Number.isFinite(numberValue) || numberValue < 0) {
-    return undefined;
-  }
-
-  return numberValue;
-}
-
-function parseOptionalNonNegativeInteger(value: string) {
-  if (!value) {
-    return null;
-  }
-
-  const numberValue = Number(value);
-
-  if (!Number.isInteger(numberValue) || numberValue < 0) {
+  if (!Number.isFinite(numberValue) || numberValue <= 0) {
     return undefined;
   }
 
@@ -162,10 +137,10 @@ export async function createCardioEntry(
   const durationMinutes = parsePositiveInteger(
     getTrimmedValue(formData, "duration_minutes"),
   );
-  const distanceValue = parseOptionalNonNegativeNumber(
+  const parsedDistanceValue = parseOptionalPositiveNumber(
     getTrimmedValue(formData, "distance_value"),
   );
-  const calories = parseOptionalNonNegativeInteger(getTrimmedValue(formData, "calories"));
+  const calories = parsePositiveInteger(getTrimmedValue(formData, "calories"));
 
   if (!isDateInputValue(cardioDate)) {
     return {
@@ -195,10 +170,10 @@ export async function createCardioEntry(
     };
   }
 
-  if (distanceValue === undefined) {
+  if (parsedDistanceValue === undefined) {
     return {
       status: "error",
-      message: "Distance must be 0 or higher.",
+      message: "Distance must be greater than 0.",
     };
   }
 
@@ -209,10 +184,10 @@ export async function createCardioEntry(
     };
   }
 
-  if (calories === undefined) {
+  if (!calories) {
     return {
       status: "error",
-      message: "Calories must be 0 or higher.",
+      message: "Calories must be greater than 0 kcal.",
     };
   }
 
@@ -249,7 +224,7 @@ export async function createCardioEntry(
 
   const { data: exercise, error: exerciseError } = await context.supabase
     .from("cardio_exercises")
-    .select("id")
+    .select("id, category")
     .eq("id", cardioExerciseId)
     .eq("user_id", context.userId)
     .maybeSingle();
@@ -261,6 +236,16 @@ export async function createCardioEntry(
     };
   }
 
+  if (needsCardioDistance(exercise.category) && parsedDistanceValue === null) {
+    return {
+      status: "error",
+      message: "Walking and running entries need distance in km or mi.",
+    };
+  }
+
+  const distanceValue = needsCardioDistance(exercise.category)
+    ? parsedDistanceValue
+    : null;
   const notes = getOptionalText(formData, "notes");
   const { error } = await context.supabase.from("cardio_entries").insert({
     user_id: context.userId,
@@ -281,6 +266,7 @@ export async function createCardioEntry(
   }
 
   revalidatePath("/cardio");
+  revalidatePath("/history");
   revalidatePath("/cardio/new");
   redirect("/cardio");
 }
