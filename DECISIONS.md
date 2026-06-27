@@ -71,3 +71,11 @@ This file records important project decisions. Add new entries when the project 
 - **Reason:** Strength training sets use weight, reps, set number, and warmup/working kind. Aerobic/cardio work is better represented by duration, distance, distance unit, optional calories, and notes.
 - **Alternatives considered:** reuse `workout_sets` for cardio, add loosely typed notes to strength sessions, or wait for a larger analytics redesign.
 - **Consequences:** Stage 5 adds `cardio_exercises` and `cardio_entries` with their own RLS policies and protected `/cardio` routes. The existing weight-training tables and workout flow remain unchanged.
+
+## 2026-06-27
+
+### Decision: Make the GitHub repository public for source-code access
+
+- **Reason:** The owner wants external coding assistants such as Claude to read the project source code and propose or make further changes from GitHub.
+- **Alternatives considered:** keep the repository private and grant collaborator access, or share a local/archive copy of the source code.
+- **Consequences:** The repository `stevenjobs530-afk/personal-training-website-v2` is public, but the product boundary is unchanged: deployed app content remains login-only, public signup stays out of Version 1, and secrets such as `.env.local`, passwords, cookies, tokens, and Supabase service role keys must never be committed or copied into docs.

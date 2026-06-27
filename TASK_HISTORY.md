@@ -243,6 +243,14 @@ This file tracks what has been done, what failed, and what future Codex sessions
   - Aligned the Cardio category list with the Q3 prompt: treadmill running, indoor walking, incline walking, stair climber, elliptical, cycling, rowing, outdoor running, outdoor walking, and other cardio.
   - Verified `npm run lint` and `npm run build` pass.
   - Remaining limitation: logged-in visual and mutation QA still needs owner confirmation because Codex must not handle the owner password, cookies, or tokens.
+- 2026-06-27: Changed the GitHub repository visibility from private to public:
+  - Confirmed `origin` points to `https://github.com/stevenjobs530-afk/personal-training-website-v2.git`.
+  - Confirmed `main` was aligned with `origin/main` before the visibility change.
+  - Confirmed `.env`, `.env.local`, and `.env.production` remain ignored, with only placeholder-only `.env.example` tracked.
+  - Checked the tracked files and Git history for obvious service-role/API-token patterns before changing visibility.
+  - Changed `stevenjobs530-afk/personal-training-website-v2` to public so external coding assistants can access the source code.
+  - Verified GitHub reports `visibility: PUBLIC` and `isPrivate: false`.
+  - The app boundary is unchanged: deployed private workout content remains protected by login, Supabase Auth, and RLS.
 
 ## Failed Or Abandoned Attempts
 
