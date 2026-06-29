@@ -14,6 +14,7 @@ export type SessionExercise = {
 };
 
 export type SessionSet = {
+  createdAt: string;
   id: string;
   exerciseId: string;
   exerciseName: string;
@@ -39,6 +40,7 @@ type WorkoutSetManagerProps = {
 type ExerciseSetGroup = {
   exerciseId: string;
   exerciseName: string;
+  latestCreatedAt: string;
   sets: SessionSet[];
 };
 
@@ -99,19 +101,26 @@ function groupSetsByExercise(sets: SessionSet[]) {
     const group = groups.get(set.exerciseId) ?? {
       exerciseId: set.exerciseId,
       exerciseName: set.exerciseName,
+      latestCreatedAt: set.createdAt,
       sets: [],
     };
 
     group.sets.push(set);
+    group.latestCreatedAt =
+      set.createdAt > group.latestCreatedAt ? set.createdAt : group.latestCreatedAt;
     groups.set(set.exerciseId, group);
   });
 
-  return Array.from(groups.values()).map((group) => ({
-    ...group,
-    sets: group.sets.toSorted(
-      (left, right) => left.setNumber - right.setNumber,
-    ),
-  }));
+  return Array.from(groups.values())
+    .map((group) => ({
+      ...group,
+      sets: group.sets.toSorted(
+        (left, right) => left.setNumber - right.setNumber,
+      ),
+    }))
+    .toSorted((left, right) =>
+      right.latestCreatedAt.localeCompare(left.latestCreatedAt),
+    );
 }
 
 function formatStepperValue(value: number, valueKind: "decimal" | "integer") {
