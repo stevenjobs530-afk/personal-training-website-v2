@@ -337,6 +337,25 @@ This file tracks what has been done, what failed, and what future Codex sessions
   - Verified `npm run lint` and `npm run build` pass.
   - Browser QA confirmed signed-out local `/workouts/[sessionId]` redirects to `/login?next=...` on desktop and 390px mobile with no console warnings/errors or framework overlay.
   - Remaining limitation: authenticated visual QA of the new previous-best hint requires the owner to sign in locally or test after a later preview/deploy; Codex did not handle the owner password, cookies, or tokens.
+- 2026-06-29: Added local strength progress summary chips:
+  - Updated `/progress` strength rows to derive Best set, Last set, and Latest volume from existing `workout_sets`, `workout_sessions`, and `exercises` data.
+  - All new strength summaries and volume points use working sets only, so warmups remain excluded from Progress calculations.
+  - Kept cardio exercises out of strength progress through the existing cardio-only name filter.
+  - Added a compact strength chart toggle between average working-set weight and daily working volume, while preserving the existing mobile-first accordion layout and visual style.
+  - No Supabase schema, new tables, RLS, auth flow, public signup behavior, or cardio model was changed.
+  - Verified `npm run lint` and `npm run build` pass.
+  - Did not push to GitHub; owner approval is required before syncing.
+- 2026-06-29: Added local Progress expand/collapse controls:
+  - Added a compact `Expand all` / `Collapse all` button above the Progress exercise accordions.
+  - The control applies only to the currently visible filtered exercise rows, while keeping the existing Strength and Cardio group sections.
+  - This is a UI-only change; no Progress metrics, Supabase queries, schema, tables, RLS, auth flow, public signup behavior, or cardio model was changed.
+  - Verified `npm run lint` and `npm run build` pass.
+  - Did not push to GitHub; owner approval is required before syncing.
+- 2026-06-29: Fixed local Progress chart header spacing on phone preview:
+  - Updated the Progress chart header so the chart title and chart toggles remain stacked on phone-sized layouts instead of crowding each other.
+  - Kept the existing desktop/iPad chart layout behavior at wider widths and did not change Progress metrics, calculations, Supabase queries, schema, tables, RLS, auth flow, public signup behavior, or cardio model.
+  - Verified `npm run lint` and `npm run build` pass.
+  - Did not push to GitHub; owner approval is required before syncing.
 
 ## Failed Or Abandoned Attempts
 

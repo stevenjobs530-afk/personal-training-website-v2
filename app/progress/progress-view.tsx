@@ -8,16 +8,31 @@ export type ProgressPoint = {
   value: number;
 };
 
+export type ProgressMetricMode = "average" | "cumulative" | "sum";
+
+export type StrengthSetSummary = {
+  reps: number;
+  weight: string;
+};
+
+export type StrengthProgressSummary = {
+  bestSet: StrengthSetSummary | null;
+  lastSet: StrengthSetSummary | null;
+  latestVolume: ProgressPoint | null;
+};
+
 export type ProgressItem = {
   emptyMessage: string;
   id: string;
   initial: string;
   kind: "cardio" | "strength";
-  metricMode: "average" | "cumulative";
+  metricMode: ProgressMetricMode;
   metricLabel: string;
   name: string;
   points: ProgressPoint[];
+  strengthSummary?: StrengthProgressSummary;
   unit: string;
+  volumePoints?: ProgressPoint[];
 };
 
 type ProgressViewProps = {
@@ -27,6 +42,8 @@ type ProgressViewProps = {
 type ChartPoint = ProgressPoint & {
   observed?: boolean;
 };
+
+type StrengthChartMode = "average" | "volume";
 
 const timeRanges = [
   { days: 7, id: "7d", label: "1W" },
@@ -74,26 +91,34 @@ function getRangeBounds(rangeId: TimeRangeId) {
   };
 }
 
-function getVisiblePoints(item: ProgressItem, rangeId: TimeRangeId): ChartPoint[] {
+function getVisiblePoints({
+  metricMode,
+  points,
+  rangeId,
+}: {
+  metricMode: ProgressMetricMode;
+  points: ProgressPoint[];
+  rangeId: TimeRangeId;
+}): ChartPoint[] {
   const { end, start } = getRangeBounds(rangeId);
   const startTime = parseDateKey(start);
   const endTime = parseDateKey(end);
-  const points = item.points.filter((point) => {
+  const visiblePoints = points.filter((point) => {
     const pointTime = parseDateKey(point.date);
 
     return pointTime >= startTime && pointTime <= endTime;
   });
 
-  if (item.metricMode === "average") {
-    return points;
+  if (metricMode !== "cumulative") {
+    return visiblePoints;
   }
 
-  if (!points.length) {
+  if (!visiblePoints.length) {
     return [];
   }
 
   let runningTotal = 0;
-  const cumulativePoints: ChartPoint[] = points.map((point) => {
+  const cumulativePoints: ChartPoint[] = visiblePoints.map((point) => {
     runningTotal += point.value;
 
     return {
@@ -171,6 +196,14 @@ function formatAxisValue(value: number) {
   return value.toFixed(1);
 }
 
+function formatMetricValue(value: number) {
+  const formattedValue = Number.isInteger(value)
+    ? value
+    : Number(value.toFixed(1));
+
+  return new Intl.NumberFormat("en").format(formattedValue);
+}
+
 function getChartData({
   points,
   rangeId,
@@ -233,19 +266,85 @@ function buildTrendPath(coordinates: ReturnType<typeof getChartData>["coordinate
   }, `M ${firstPoint.x.toFixed(1)} ${firstPoint.y.toFixed(1)}`);
 }
 
+function ChartMetricControl({
+  chartMode,
+  setChartMode,
+}: {
+  chartMode: StrengthChartMode;
+  setChartMode: (mode: StrengthChartMode) => void;
+}) {
+  const options: { id: StrengthChartMode; label: string }[] = [
+    { id: "average", label: "Avg weight" },
+    { id: "volume", label: "Volume" },
+  ];
+
+  return (
+    <div className="inline-grid grid-cols-2 overflow-hidden rounded-md border border-[var(--border)] bg-[var(--surface)]">
+      {options.map((option) => {
+        const isActive = option.id === chartMode;
+
+        return (
+          <button
+            className={`min-h-8 px-3 text-xs font-black ${
+              isActive
+                ? "bg-[var(--accent)] text-white"
+                : "bg-white text-[var(--muted)]"
+            }`}
+            key={option.id}
+            onClick={() => setChartMode(option.id)}
+            type="button"
+          >
+            {option.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 function TrendChart({ item }: { item: ProgressItem }) {
   const [rangeId, setRangeId] = useState<TimeRangeId>("30d");
+  const [chartMode, setChartMode] = useState<StrengthChartMode>("average");
+  const isVolumeMode = item.kind === "strength" && chartMode === "volume";
+  const metricMode = isVolumeMode ? "sum" : item.metricMode;
+  const metricLabel = isVolumeMode
+    ? "Total working volume by day"
+    : item.metricLabel;
+  const unit = isVolumeMode ? "kg x reps" : item.unit;
+  const emptyMessage = isVolumeMode ? "No working volume yet." : item.emptyMessage;
+  const chartPoints = useMemo(
+    () => (isVolumeMode ? item.volumePoints ?? [] : item.points),
+    [isVolumeMode, item.points, item.volumePoints],
+  );
   const visiblePoints = useMemo(
-    () => getVisiblePoints(item, rangeId),
-    [item, rangeId],
+    () =>
+      getVisiblePoints({
+        metricMode,
+        points: chartPoints,
+        rangeId,
+      }),
+    [chartPoints, metricMode, rangeId],
+  );
+  const controls = (
+    <div className="flex w-full flex-wrap gap-2 md:w-auto md:justify-end">
+      {item.kind === "strength" ? (
+        <ChartMetricControl chartMode={chartMode} setChartMode={setChartMode} />
+      ) : null}
+      <ChartRangeControl rangeId={rangeId} setRangeId={setRangeId} />
+    </div>
   );
 
   if (visiblePoints.length < 2) {
     return (
       <div className="rounded-md border border-[var(--border)] bg-white p-4">
-        <ChartRangeControl rangeId={rangeId} setRangeId={setRangeId} />
+        <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+          <h3 className="max-w-full text-sm font-black leading-5 text-[var(--foreground)] md:max-w-[16rem] lg:max-w-none">
+            {metricLabel} ({unit})
+          </h3>
+          {controls}
+        </div>
         <div className="mt-3 flex min-h-48 items-center justify-center rounded-md border border-dashed border-[var(--border)] bg-[var(--surface)] p-6 text-center text-sm font-semibold text-[var(--muted)]">
-          {item.emptyMessage}
+          {emptyMessage}
         </div>
       </div>
     );
@@ -254,7 +353,7 @@ function TrendChart({ item }: { item: ProgressItem }) {
   const chart = getChartData({
     points: visiblePoints,
     rangeId,
-    startAtZero: item.metricMode === "cumulative",
+    startAtZero: metricMode !== "average",
   });
   const trendPath = buildTrendPath(chart.coordinates);
   const labelIndexes = visiblePoints
@@ -264,15 +363,15 @@ function TrendChart({ item }: { item: ProgressItem }) {
       return index === 0 || index === visiblePoints.length - 1 || index % interval === 0;
     });
   const shouldShowMarkers =
-    chart.coordinates.length <= 18 || item.metricMode === "cumulative";
+    chart.coordinates.length <= 18 || metricMode !== "average";
 
   return (
     <div className="rounded-md border border-[var(--border)] bg-white p-4">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <h3 className="text-sm font-black text-[var(--foreground)]">
-          {item.metricLabel} ({item.unit})
+      <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+        <h3 className="max-w-full text-sm font-black leading-5 text-[var(--foreground)] md:max-w-[16rem] lg:max-w-none">
+          {metricLabel} ({unit})
         </h3>
-        <ChartRangeControl rangeId={rangeId} setRangeId={setRangeId} />
+        {controls}
       </div>
       <svg
         aria-label={`${item.name} progress chart`}
@@ -321,7 +420,7 @@ function TrendChart({ item }: { item: ProgressItem }) {
 
         {shouldShowMarkers
           ? chart.coordinates
-              .filter((point) => item.metricMode === "average" || point.observed)
+              .filter((point) => metricMode !== "cumulative" || point.observed)
               .map((point) => (
                 <circle
                   cx={point.x}
@@ -397,6 +496,7 @@ function CalculationNotes({ kind }: { kind: ProgressItem["kind"] }) {
             "Daily data point",
             "Multiple working sets on the same day are averaged into one point",
           ],
+          ["Volume", "Volume sums weight x reps by workout date"],
         ]
       : [
           ["Data source", "Recorded cardio history"],
@@ -431,10 +531,67 @@ function CalculationNotes({ kind }: { kind: ProgressItem["kind"] }) {
   );
 }
 
+function formatSetSummary(value: StrengthSetSummary | null) {
+  return value ? `${value.weight} kg x ${value.reps}` : "No working sets yet";
+}
+
+function StrengthSummaryChips({
+  summary,
+}: {
+  summary: StrengthProgressSummary | undefined;
+}) {
+  const latestVolume = summary?.latestVolume;
+  const chips = [
+    {
+      label: "Best set",
+      value: formatSetSummary(summary?.bestSet ?? null),
+    },
+    {
+      label: "Last set",
+      value: formatSetSummary(summary?.lastSet ?? null),
+    },
+    {
+      label: "Latest volume",
+      value: latestVolume
+        ? `${formatMetricValue(latestVolume.value)} kg x reps`
+        : "No volume yet",
+      detail: latestVolume?.label,
+    },
+  ];
+
+  return (
+    <div className="grid gap-2 sm:grid-cols-3">
+      {chips.map((chip) => (
+        <div
+          className="rounded-md border border-[var(--border)] bg-white px-3 py-2"
+          key={chip.label}
+        >
+          <p className="text-[0.68rem] font-black uppercase text-[var(--muted)]">
+            {chip.label}
+          </p>
+          <p className="mt-1 text-sm font-black text-[var(--foreground)]">
+            {chip.value}
+          </p>
+          {chip.detail ? (
+            <p className="mt-1 text-xs font-semibold text-[var(--muted)]">
+              {chip.detail}
+            </p>
+          ) : null}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function ProgressPanel({ item }: { item: ProgressItem }) {
   return (
     <div className="grid gap-4 border-t border-[var(--border)] p-3 lg:grid-cols-[minmax(0,1.65fr)_minmax(18rem,1fr)]">
-      <TrendChart item={item} />
+      <div className="space-y-3">
+        {item.kind === "strength" ? (
+          <StrengthSummaryChips summary={item.strengthSummary} />
+        ) : null}
+        <TrendChart item={item} />
+      </div>
       <CalculationNotes kind={item.kind} />
     </div>
   );
@@ -489,7 +646,15 @@ function ProgressCategory({
   );
 }
 
-function ProgressItemList({ items }: { items: ProgressItem[] }) {
+function ProgressItemList({
+  items,
+  onItemOpenChange,
+  openItemIds,
+}: {
+  items: ProgressItem[];
+  onItemOpenChange: (itemId: string, isOpen: boolean) => void;
+  openItemIds: Set<string>;
+}) {
   if (!items.length) {
     return (
       <div className="rounded-md border border-dashed border-[var(--border)] bg-[var(--background)] p-5 text-base leading-7 text-[var(--muted)]">
@@ -500,11 +665,14 @@ function ProgressItemList({ items }: { items: ProgressItem[] }) {
 
   return (
     <section className="space-y-2">
-      {items.map((item, index) => (
+      {items.map((item) => (
         <details
           className="rounded-md border border-[var(--border)] bg-[var(--surface)] shadow-sm"
           key={item.id}
-          open={index === 0}
+          onToggle={(event) =>
+            onItemOpenChange(item.id, event.currentTarget.open)
+          }
+          open={openItemIds.has(item.id)}
         >
           <summary className="flex min-h-14 cursor-pointer items-center justify-between gap-4 px-3">
             <div className="flex min-w-0 items-center gap-3">
@@ -528,6 +696,16 @@ function ProgressItemList({ items }: { items: ProgressItem[] }) {
 
 export function ProgressView({ items }: ProgressViewProps) {
   const [query, setQuery] = useState("");
+  const [openItemIds, setOpenItemIds] = useState<Set<string>>(() => {
+    const firstStrengthItem = items.find((item) => item.kind === "strength");
+    const firstCardioItem = items.find((item) => item.kind === "cardio");
+
+    return new Set(
+      [firstStrengthItem?.id, firstCardioItem?.id].filter(
+        (id): id is string => Boolean(id),
+      ),
+    );
+  });
   const filteredItems = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
 
@@ -539,21 +717,63 @@ export function ProgressView({ items }: ProgressViewProps) {
   }, [items, query]);
   const strengthItems = filteredItems.filter((item) => item.kind === "strength");
   const cardioItems = filteredItems.filter((item) => item.kind === "cardio");
+  const visibleItemIds = filteredItems.map((item) => item.id);
+  const allVisibleItemsOpen =
+    visibleItemIds.length > 0 && visibleItemIds.every((id) => openItemIds.has(id));
+
+  function handleItemOpenChange(itemId: string, isOpen: boolean) {
+    setOpenItemIds((currentOpenIds) => {
+      const nextOpenIds = new Set(currentOpenIds);
+
+      if (isOpen) {
+        nextOpenIds.add(itemId);
+      } else {
+        nextOpenIds.delete(itemId);
+      }
+
+      return nextOpenIds;
+    });
+  }
+
+  function toggleAllVisibleItems() {
+    setOpenItemIds((currentOpenIds) => {
+      const nextOpenIds = new Set(currentOpenIds);
+
+      if (allVisibleItemsOpen) {
+        visibleItemIds.forEach((id) => nextOpenIds.delete(id));
+      } else {
+        visibleItemIds.forEach((id) => nextOpenIds.add(id));
+      }
+
+      return nextOpenIds;
+    });
+  }
 
   return (
     <div className="space-y-4">
-      <div className="max-w-sm">
-        <label className="sr-only" htmlFor="progress-search">
-          Search exercise progress
-        </label>
-        <input
-          className="min-h-11 w-full rounded-md border border-[var(--border)] bg-white px-4 text-sm outline-none focus:border-[var(--accent)]"
-          id="progress-search"
-          onChange={(event) => setQuery(event.target.value)}
-          placeholder="Search exercise progress"
-          type="search"
-          value={query}
-        />
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="w-full max-w-sm">
+          <label className="sr-only" htmlFor="progress-search">
+            Search exercise progress
+          </label>
+          <input
+            className="min-h-11 w-full rounded-md border border-[var(--border)] bg-white px-4 text-sm outline-none focus:border-[var(--accent)]"
+            id="progress-search"
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Search exercise progress"
+            type="search"
+            value={query}
+          />
+        </div>
+        {filteredItems.length ? (
+          <button
+            className="inline-flex min-h-10 items-center justify-center rounded-md border border-[var(--border)] bg-white px-4 text-sm font-black text-[var(--foreground)] hover:bg-[var(--surface-strong)]"
+            onClick={toggleAllVisibleItems}
+            type="button"
+          >
+            {allVisibleItemsOpen ? "Collapse all" : "Expand all"}
+          </button>
+        ) : null}
       </div>
 
       {filteredItems.length ? (
@@ -565,7 +785,11 @@ export function ProgressView({ items }: ProgressViewProps) {
             icon="H"
             title="Strength"
           >
-            <ProgressItemList items={strengthItems} />
+            <ProgressItemList
+              items={strengthItems}
+              onItemOpenChange={handleItemOpenChange}
+              openItemIds={openItemIds}
+            />
           </ProgressCategory>
 
           <ProgressCategory
@@ -575,7 +799,11 @@ export function ProgressView({ items }: ProgressViewProps) {
             icon="A"
             title="Cardio"
           >
-            <ProgressItemList items={cardioItems} />
+            <ProgressItemList
+              items={cardioItems}
+              onItemOpenChange={handleItemOpenChange}
+              openItemIds={openItemIds}
+            />
           </ProgressCategory>
         </section>
       ) : (
