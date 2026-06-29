@@ -165,6 +165,7 @@ export default async function WorkoutSessionPage({
     exercises.map((exercise) => [exercise.id, exercise.name]),
   );
   const sets = ((setsResult.data ?? []) as WorkoutSetRow[]).map<SessionSet>((set) => ({
+    createdAt: set.created_at,
     id: set.id,
     exerciseId: set.exercise_id,
     exerciseName: exerciseNameById.get(set.exercise_id) ?? "Unknown exercise",

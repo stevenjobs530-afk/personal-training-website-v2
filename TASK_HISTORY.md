@@ -356,6 +356,12 @@ This file tracks what has been done, what failed, and what future Codex sessions
   - Kept the existing desktop/iPad chart layout behavior at wider widths and did not change Progress metrics, calculations, Supabase queries, schema, tables, RLS, auth flow, public signup behavior, or cardio model.
   - Verified `npm run lint` and `npm run build` pass.
   - Did not push to GitHub; owner approval is required before syncing.
+- 2026-06-29: Added local newest-exercise ordering for recorded workout sets:
+  - Updated `/workouts/[sessionId]` so Recorded sets exercise groups sort by the newest saved set in each group.
+  - Kept each exercise group's internal set order unchanged by set number, so Set 1, Set 2, and Set 3 remain in normal order.
+  - This is a UI/display-order change only; set saving, set numbers, Supabase schema, tables, RLS, auth flow, public signup behavior, and the workout data model were not changed.
+  - Verified `npm run lint` and `npm run build` pass.
+  - Did not push to GitHub; owner approval is required before syncing.
 
 ## Failed Or Abandoned Attempts
 
