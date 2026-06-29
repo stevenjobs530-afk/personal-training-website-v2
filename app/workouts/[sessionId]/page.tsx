@@ -6,6 +6,7 @@ import { requireAuth } from "@/lib/auth/require-auth";
 import { createClient } from "@/lib/supabase/server";
 import { filterStrengthExercises } from "@/lib/training/cardio-reserved";
 import {
+  type PreviousBestSet,
   type SessionExercise,
   type SessionSet,
   WorkoutSetManager,
@@ -36,6 +37,18 @@ type WorkoutSetRow = {
   created_at: string;
 };
 
+type PreviousWorkoutSetRow = {
+  exercise_id: string;
+  reps: number;
+  session_id: string;
+  weight: number | string;
+};
+
+type PreviousWorkoutSessionRow = {
+  id: string;
+  workout_date: string;
+};
+
 function formatWorkoutDate(value: string) {
   return new Intl.DateTimeFormat("en", {
     dateStyle: "medium",
@@ -51,6 +64,57 @@ function normalizeWeight(value: number | string) {
   }
 
   return Number.isInteger(numberValue) ? String(numberValue) : String(numberValue);
+}
+
+function buildPreviousBestByExerciseId({
+  previousSessions,
+  previousSets,
+}: {
+  previousSessions: PreviousWorkoutSessionRow[];
+  previousSets: PreviousWorkoutSetRow[];
+}) {
+  const sessionDateById = new Map(
+    previousSessions.map((session) => [session.id, session.workout_date]),
+  );
+  const bestByExerciseId: Record<string, PreviousBestSet> = {};
+  const bestSortByExerciseId = new Map<
+    string,
+    { reps: number; weight: number; workoutDate: string }
+  >();
+
+  previousSets.forEach((set) => {
+    const weight = Number(set.weight);
+    const workoutDate = sessionDateById.get(set.session_id) ?? "";
+
+    if (!Number.isFinite(weight)) {
+      return;
+    }
+
+    const currentBest = bestSortByExerciseId.get(set.exercise_id);
+    const isBetter =
+      !currentBest ||
+      weight > currentBest.weight ||
+      (weight === currentBest.weight && set.reps > currentBest.reps) ||
+      (weight === currentBest.weight &&
+        set.reps === currentBest.reps &&
+        workoutDate > currentBest.workoutDate);
+
+    if (!isBetter) {
+      return;
+    }
+
+    bestSortByExerciseId.set(set.exercise_id, {
+      reps: set.reps,
+      weight,
+      workoutDate,
+    });
+    bestByExerciseId[set.exercise_id] = {
+      reps: set.reps,
+      weight: normalizeWeight(set.weight),
+    };
+  });
+
+  return bestByExerciseId;
 }
 
 export default async function WorkoutSessionPage({
@@ -81,6 +145,20 @@ export default async function WorkoutSessionPage({
   }
 
   const session = sessionResult.data as WorkoutSession;
+  const previousSessionsResult = await supabase
+    .from("workout_sessions")
+    .select("id, workout_date")
+    .lt("workout_date", session.workout_date);
+  const previousSessions =
+    (previousSessionsResult.data ?? []) as PreviousWorkoutSessionRow[];
+  const previousSessionIds = previousSessions.map((previousSession) => previousSession.id);
+  const previousSetsResult = previousSessionIds.length
+    ? await supabase
+        .from("workout_sets")
+        .select("exercise_id, session_id, weight, reps")
+        .eq("set_kind", "working")
+        .in("session_id", previousSessionIds)
+    : { data: [], error: null };
   const exercises = (exercisesResult.data ?? []) as SessionExercise[];
   const selectableExercises = filterStrengthExercises(exercises);
   const exerciseNameById = new Map(
@@ -96,6 +174,10 @@ export default async function WorkoutSessionPage({
     reps: set.reps,
     notes: set.notes,
   }));
+  const previousBestByExerciseId = buildPreviousBestByExerciseId({
+    previousSessions,
+    previousSets: (previousSetsResult.data ?? []) as PreviousWorkoutSetRow[],
+  });
 
   return (
     <AppShell>
@@ -112,7 +194,10 @@ export default async function WorkoutSessionPage({
           </Link>
         }
       >
-        {exercisesResult.error || setsResult.error ? (
+        {exercisesResult.error ||
+        setsResult.error ||
+        previousSessionsResult.error ||
+        previousSetsResult.error ? (
           <div
             className="rounded-md border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-700"
             role="alert"
@@ -122,6 +207,7 @@ export default async function WorkoutSessionPage({
         ) : null}
         <WorkoutSetManager
           exercises={selectableExercises}
+          previousBestByExerciseId={previousBestByExerciseId}
           sessionId={session.id}
           sets={sets}
         />

@@ -24,8 +24,14 @@ export type SessionSet = {
   notes: string | null;
 };
 
+export type PreviousBestSet = {
+  reps: number;
+  weight: string;
+};
+
 type WorkoutSetManagerProps = {
   exercises: SessionExercise[];
+  previousBestByExerciseId: Record<string, PreviousBestSet>;
   sessionId: string;
   sets: SessionSet[];
 };
@@ -260,14 +266,35 @@ function InlineExerciseForm({
   );
 }
 
+function PreviousBestHint({
+  bestSet,
+}: {
+  bestSet: PreviousBestSet | undefined;
+}) {
+  return (
+    <aside className="rounded-md border border-[var(--border)] bg-[var(--accent-soft)] px-3 py-2">
+      <p className="text-xs font-bold uppercase text-[var(--accent-strong)]">
+        Previous best
+      </p>
+      <p className="mt-1 text-sm font-semibold text-[var(--foreground)]">
+        {bestSet
+          ? `Best working set: ${bestSet.weight} kg x ${bestSet.reps}`
+          : "No previous working sets yet"}
+      </p>
+    </aside>
+  );
+}
+
 function AddSetForm({
   exerciseId,
   exerciseName,
+  previousBestSet,
   sessionId,
   sets,
 }: {
   exerciseId: string;
   exerciseName: string;
+  previousBestSet: PreviousBestSet | undefined;
   sessionId: string;
   sets: SessionSet[];
 }) {
@@ -307,6 +334,8 @@ function AddSetForm({
       <p className="rounded-md bg-[var(--surface-strong)] px-3 py-2 text-sm font-semibold text-[var(--foreground)]">
         Set {nextSetNumber} for {exerciseName}
       </p>
+
+      <PreviousBestHint bestSet={previousBestSet} />
 
       <fieldset className="grid grid-cols-2 gap-2" key={`${fieldResetKey}-${defaultSetKind}`}>
         <legend className="sr-only">Set kind</legend>
@@ -434,6 +463,7 @@ function AddSetForm({
 
 function WorkoutSetEntry({
   exercises,
+  previousBestByExerciseId,
   sessionId,
   sets,
 }: WorkoutSetManagerProps) {
@@ -506,6 +536,7 @@ function WorkoutSetEntry({
       <AddSetForm
         exerciseId={activeExerciseId}
         exerciseName={activeExerciseName}
+        previousBestSet={previousBestByExerciseId[activeExerciseId]}
         sessionId={sessionId}
         sets={sets}
       />
@@ -607,6 +638,7 @@ function SetList({
 
 export function WorkoutSetManager({
   exercises,
+  previousBestByExerciseId,
   sessionId,
   sets,
 }: WorkoutSetManagerProps) {
@@ -621,6 +653,7 @@ export function WorkoutSetManager({
         </div>
         <WorkoutSetEntry
           exercises={exercises}
+          previousBestByExerciseId={previousBestByExerciseId}
           sessionId={sessionId}
           sets={sets}
         />
