@@ -13,7 +13,10 @@ type ExerciseRow = {
 };
 
 type WorkoutSetRow = {
+  created_at: string;
   exercise_id: string;
+  reps: number;
+  set_number: number;
   session_id: string;
   set_kind: "warmup" | "working";
   weight: number | string;
@@ -39,6 +42,14 @@ type CardioEntryRow = {
 type AggregateValue = {
   count: number;
   total: number;
+};
+
+type SetSummary = {
+  createdAt: string;
+  reps: number;
+  setNumber: number;
+  weight: number;
+  workoutDate: string;
 };
 
 function formatPointLabel(value: string) {
@@ -73,6 +84,10 @@ function buildSumPoints(valuesByDate: Map<string, number>) {
     }));
 }
 
+function formatWeight(value: number) {
+  return Number.isInteger(value) ? String(value) : String(Number(value.toFixed(2)));
+}
+
 function addAggregate(
   valuesByDate: Map<string, AggregateValue>,
   date: string,
@@ -82,6 +97,46 @@ function addAggregate(
   current.count += 1;
   current.total += value;
   valuesByDate.set(date, current);
+}
+
+function isBestSet(candidate: SetSummary, current: SetSummary | undefined) {
+  if (!current) {
+    return true;
+  }
+
+  if (candidate.weight !== current.weight) {
+    return candidate.weight > current.weight;
+  }
+
+  if (candidate.reps !== current.reps) {
+    return candidate.reps > current.reps;
+  }
+
+  if (candidate.workoutDate !== current.workoutDate) {
+    return candidate.workoutDate > current.workoutDate;
+  }
+
+  if (candidate.createdAt !== current.createdAt) {
+    return candidate.createdAt > current.createdAt;
+  }
+
+  return candidate.setNumber > current.setNumber;
+}
+
+function isLatestSet(candidate: SetSummary, current: SetSummary | undefined) {
+  if (!current) {
+    return true;
+  }
+
+  if (candidate.workoutDate !== current.workoutDate) {
+    return candidate.workoutDate > current.workoutDate;
+  }
+
+  if (candidate.createdAt !== current.createdAt) {
+    return candidate.createdAt > current.createdAt;
+  }
+
+  return candidate.setNumber > current.setNumber;
 }
 
 function buildStrengthProgressItems({
@@ -94,6 +149,9 @@ function buildStrengthProgressItems({
   workoutSets: WorkoutSetRow[];
 }): ProgressItem[] {
   const valuesByExercise = new Map<string, Map<string, AggregateValue>>();
+  const volumeByExercise = new Map<string, Map<string, number>>();
+  const bestSetByExercise = new Map<string, SetSummary>();
+  const lastSetByExercise = new Map<string, SetSummary>();
 
   workoutSets.forEach((set) => {
     if (set.set_kind !== "working") {
@@ -103,17 +161,43 @@ function buildStrengthProgressItems({
     const session = sessionsById.get(set.session_id);
     const weight = Number(set.weight);
 
-    if (!session || !Number.isFinite(weight)) {
+    if (!session || !Number.isFinite(weight) || !Number.isFinite(set.reps)) {
       return;
     }
 
+    const summary: SetSummary = {
+      createdAt: set.created_at,
+      reps: set.reps,
+      setNumber: set.set_number,
+      weight,
+      workoutDate: session.workout_date,
+    };
     const valuesByDate = valuesByExercise.get(set.exercise_id) ?? new Map();
     addAggregate(valuesByDate, session.workout_date, weight);
     valuesByExercise.set(set.exercise_id, valuesByDate);
+
+    const volumeByDate = volumeByExercise.get(set.exercise_id) ?? new Map();
+    volumeByDate.set(
+      session.workout_date,
+      (volumeByDate.get(session.workout_date) ?? 0) + weight * set.reps,
+    );
+    volumeByExercise.set(set.exercise_id, volumeByDate);
+
+    if (isBestSet(summary, bestSetByExercise.get(set.exercise_id))) {
+      bestSetByExercise.set(set.exercise_id, summary);
+    }
+
+    if (isLatestSet(summary, lastSetByExercise.get(set.exercise_id))) {
+      lastSetByExercise.set(set.exercise_id, summary);
+    }
   });
 
   return exercises.map((exercise) => {
     const points = buildAveragePoints(valuesByExercise.get(exercise.id) ?? new Map());
+    const volumePoints = buildSumPoints(volumeByExercise.get(exercise.id) ?? new Map());
+    const bestSet = bestSetByExercise.get(exercise.id);
+    const lastSet = lastSetByExercise.get(exercise.id);
+    const latestVolume = volumePoints[volumePoints.length - 1];
 
     return {
       emptyMessage: "No working-set trend yet.",
@@ -124,7 +208,29 @@ function buildStrengthProgressItems({
       metricLabel: "Average working-set weight over time",
       name: exercise.name,
       points,
+      strengthSummary: {
+        bestSet: bestSet
+          ? {
+              reps: bestSet.reps,
+              weight: formatWeight(bestSet.weight),
+            }
+          : null,
+        lastSet: lastSet
+          ? {
+              reps: lastSet.reps,
+              weight: formatWeight(lastSet.weight),
+            }
+          : null,
+        latestVolume: latestVolume
+          ? {
+              date: latestVolume.date,
+              label: latestVolume.label,
+              value: latestVolume.value,
+            }
+          : null,
+      },
       unit: "kg",
+      volumePoints,
     };
   });
 }
@@ -173,7 +279,7 @@ export default async function ProgressPage() {
     .order("name", { ascending: true });
   const workoutSetsResult = await supabase
     .from("workout_sets")
-    .select("session_id, exercise_id, set_kind, weight");
+    .select("session_id, exercise_id, set_kind, weight, reps, set_number, created_at");
   const workoutSets = (workoutSetsResult.data ?? []) as WorkoutSetRow[];
   const sessionIds = Array.from(new Set(workoutSets.map((set) => set.session_id)));
   const sessionsResult = sessionIds.length
