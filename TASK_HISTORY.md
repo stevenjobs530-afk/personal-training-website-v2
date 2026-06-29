@@ -329,6 +329,14 @@ This file tracks what has been done, what failed, and what future Codex sessions
   - Verified the logged-in Chrome `/progress` page shows `Strength`, `Cardio`, and `Cumulative kcal` with no browser console errors.
   - After explicit owner confirmation, used the protected Exercises-page cleanup action to physically delete the old unreferenced `Indoor Walking.` strength row from Supabase.
   - Reloaded logged-in `/exercises` and verified the cleanup warning/button disappeared while Aerobic `Indoor Walking` remained.
+- 2026-06-29: Added a local previous-best working set hint to workout entry:
+  - Updated `/workouts/[sessionId]` to calculate the best previous working set per strength exercise from existing `workout_sessions` and `workout_sets` data.
+  - The hint excludes warmup sets, excludes the current workout date by only using sessions before the active session date, and displays weight plus reps near the selected exercise add-set flow.
+  - Empty history shows `No previous working sets yet`.
+  - No Supabase schema, RLS, auth flow, public signup behavior, cardio model, GitHub visibility, or production deployment was changed.
+  - Verified `npm run lint` and `npm run build` pass.
+  - Browser QA confirmed signed-out local `/workouts/[sessionId]` redirects to `/login?next=...` on desktop and 390px mobile with no console warnings/errors or framework overlay.
+  - Remaining limitation: authenticated visual QA of the new previous-best hint requires the owner to sign in locally or test after a later preview/deploy; Codex did not handle the owner password, cookies, or tokens.
 
 ## Failed Or Abandoned Attempts
 
