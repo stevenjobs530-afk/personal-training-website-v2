@@ -362,6 +362,12 @@ This file tracks what has been done, what failed, and what future Codex sessions
   - This is a UI/display-order change only; set saving, set numbers, Supabase schema, tables, RLS, auth flow, public signup behavior, and the workout data model were not changed.
   - Verified `npm run lint` and `npm run build` pass.
   - Did not push to GitHub; owner approval is required before syncing.
+- 2026-06-30: Added local explicit exercise rename management:
+  - Clarified the existing strength exercise Manage form as a rename flow while continuing to update the same `exercises` row by id.
+  - Added cardio exercise rename support from the Exercises page by updating the same `cardio_exercises` row by id, including optional notes, without changing category or existing cardio entries.
+  - Kept historical workout/cardio data linked through existing exercise ids; no Supabase schema, RLS, auth flow, public signup behavior, or history table was changed.
+  - Verified `npm run lint` and `npm run build` pass.
+  - Did not push to GitHub; owner approval is required before syncing.
 
 ## Failed Or Abandoned Attempts
 

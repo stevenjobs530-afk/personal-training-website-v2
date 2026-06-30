@@ -613,32 +613,39 @@ function SetList({
           className="rounded-md border border-[var(--border)] bg-[var(--surface)] p-4"
           key={group.exerciseId}
         >
-          <h3 className="text-base font-bold text-[var(--foreground)]">
-            {group.exerciseName}
-          </h3>
-          <ul className="mt-3 space-y-3">
-            {group.sets.map((set) => (
-              <li
-                className="flex flex-col gap-3 rounded-md bg-[var(--surface-strong)] p-3 sm:flex-row sm:items-start sm:justify-between"
-                key={set.id}
-              >
-                <div className="space-y-2">
-                  <span className="inline-flex rounded-md bg-[var(--surface)] px-2 py-1 text-xs font-bold uppercase text-[var(--muted)]">
-                    {set.setKind}
-                  </span>
-                  <p className="text-lg font-bold text-[var(--foreground)]">
-                    Set {set.setNumber}: {set.weight} x {set.reps}
-                  </p>
-                  {set.notes ? (
-                    <p className="text-sm leading-6 text-[var(--muted)]">
-                      {set.notes}
+          <details>
+            <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3">
+              <h3 className="text-base font-bold text-[var(--foreground)]">
+                {group.exerciseName}
+              </h3>
+              <span className="shrink-0 text-sm font-semibold text-[var(--muted)]">
+                {group.sets.length} {group.sets.length === 1 ? "set" : "sets"}
+              </span>
+            </summary>
+            <ul className="mt-3 space-y-3">
+              {group.sets.map((set) => (
+                <li
+                  className="flex flex-col gap-3 rounded-md bg-[var(--surface-strong)] p-3 sm:flex-row sm:items-start sm:justify-between"
+                  key={set.id}
+                >
+                  <div className="space-y-2">
+                    <span className="inline-flex rounded-md bg-[var(--surface)] px-2 py-1 text-xs font-bold uppercase text-[var(--muted)]">
+                      {set.setKind}
+                    </span>
+                    <p className="text-lg font-bold text-[var(--foreground)]">
+                      Set {set.setNumber}: {set.weight} x {set.reps}
                     </p>
-                  ) : null}
-                </div>
-                <DeleteSetForm sessionId={sessionId} set={set} />
-              </li>
-            ))}
-          </ul>
+                    {set.notes ? (
+                      <p className="text-sm leading-6 text-[var(--muted)]">
+                        {set.notes}
+                      </p>
+                    ) : null}
+                  </div>
+                  <DeleteSetForm sessionId={sessionId} set={set} />
+                </li>
+              ))}
+            </ul>
+          </details>
         </li>
       ))}
     </ul>
@@ -668,10 +675,15 @@ export function WorkoutSetManager({
         />
       </section>
 
-      <section className="space-y-3">
-        <h2 className="text-xl font-bold text-[var(--foreground)]">Recorded sets</h2>
+      <details className="space-y-3">
+        <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between">
+          <h2 className="text-xl font-bold text-[var(--foreground)]">Recorded sets</h2>
+          <span className="text-sm font-semibold text-[var(--muted)]">
+            {sets.length} saved
+          </span>
+        </summary>
         <SetList sessionId={sessionId} sets={sets} />
-      </section>
+      </details>
     </div>
   );
 }

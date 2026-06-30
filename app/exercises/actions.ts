@@ -67,6 +67,14 @@ function getOptionalText(formData: FormData, key: string) {
   return value ? value : null;
 }
 
+function revalidateExerciseViews() {
+  revalidatePath("/exercises");
+  revalidatePath("/workouts");
+  revalidatePath("/history");
+  revalidatePath("/progress");
+  revalidatePath("/cardio");
+}
+
 function validateName(name: string): ExerciseActionState | null {
   if (!name) {
     return {
@@ -85,6 +93,17 @@ function validateName(name: string): ExerciseActionState | null {
   return null;
 }
 
+function validateCardioName(name: string): ExerciseActionState | null {
+  if (!name) {
+    return {
+      status: "error",
+      message: "Enter a cardio exercise name.",
+    };
+  }
+
+  return null;
+}
+
 function getSaveErrorMessage(error: DatabaseError) {
   if (error.code === "23505" || error.message?.includes("exercises_user_name_unique")) {
     return "An exercise with this name already exists.";
@@ -95,6 +114,21 @@ function getSaveErrorMessage(error: DatabaseError) {
   }
 
   return "The exercise could not be saved. Try again.";
+}
+
+function getCardioSaveErrorMessage(error: DatabaseError) {
+  if (
+    error.code === "23505" ||
+    error.message?.includes("cardio_exercises_user_name_unique")
+  ) {
+    return "A cardio exercise with this name already exists.";
+  }
+
+  if (error.code === "23514") {
+    return "Enter a cardio exercise name.";
+  }
+
+  return "The cardio exercise could not be saved. Try again.";
 }
 
 function getDeleteErrorMessage(error: DatabaseError) {
@@ -192,11 +226,67 @@ export async function updateExercise(
     };
   }
 
-  revalidatePath("/exercises");
+  revalidateExerciseViews();
 
   return {
     status: "success",
-    message: "Exercise saved.",
+    message: "Exercise renamed.",
+  };
+}
+
+export async function updateCardioExercise(
+  _previousState: ExerciseActionState,
+  formData: FormData,
+): Promise<ExerciseActionState> {
+  const id = getTrimmedValue(formData, "id");
+  const name = getTrimmedValue(formData, "name");
+  const validationError = validateCardioName(name);
+
+  if (!id) {
+    return {
+      status: "error",
+      message: "The cardio exercise could not be found.",
+    };
+  }
+
+  if (validationError) {
+    return validationError;
+  }
+
+  const context = await getActionContext();
+
+  if (!context.ok) {
+    return context.state;
+  }
+
+  const notes = getOptionalText(formData, "notes");
+  const { data, error } = await context.supabase
+    .from("cardio_exercises")
+    .update({ name, notes })
+    .eq("id", id)
+    .eq("user_id", context.userId)
+    .select("id")
+    .maybeSingle();
+
+  if (error) {
+    return {
+      status: "error",
+      message: getCardioSaveErrorMessage(error),
+    };
+  }
+
+  if (!data) {
+    return {
+      status: "error",
+      message: "The cardio exercise could not be found.",
+    };
+  }
+
+  revalidateExerciseViews();
+
+  return {
+    status: "success",
+    message: "Cardio exercise renamed.",
   };
 }
 
@@ -241,7 +331,7 @@ export async function deleteExercise(
     };
   }
 
-  revalidatePath("/exercises");
+  revalidateExerciseViews();
 
   return {
     status: "success",

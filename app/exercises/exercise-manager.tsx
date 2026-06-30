@@ -6,6 +6,7 @@ import {
   deleteReservedCardioStrengthExercises,
   deleteExercise,
   type ExerciseActionState,
+  updateCardioExercise,
   updateExercise,
 } from "./actions";
 
@@ -171,13 +172,16 @@ function ExerciseCard({ exercise }: { exercise: ExerciseListItem }) {
         <div className="space-y-3 border-t border-[var(--border)] p-3">
           <form action={updateAction} className="space-y-3">
             <input name="id" type="hidden" value={exercise.id} />
+            <h4 className="text-sm font-black text-[var(--foreground)]">
+              Rename exercise
+            </h4>
 
             <div className="space-y-2">
               <label
                 className="text-sm font-semibold text-[var(--foreground)]"
                 htmlFor={`exercise-name-${exercise.id}`}
               >
-                Name
+                Exercise name
               </label>
               <input
                 className="min-h-12 w-full rounded-md border border-[var(--border)] bg-white px-3 text-base outline-none focus:border-[var(--accent)] disabled:bg-[var(--surface-strong)]"
@@ -212,7 +216,7 @@ function ExerciseCard({ exercise }: { exercise: ExerciseListItem }) {
               type="submit"
               disabled={isPending}
             >
-              {updatePending ? "Saving..." : "Save changes"}
+              {updatePending ? "Saving..." : "Save rename"}
             </button>
           </form>
 
@@ -251,6 +255,10 @@ const cardioCategoryLabels: Record<string, string> = {
 };
 
 function CardioExerciseCard({ exercise }: { exercise: CardioExerciseListItem }) {
+  const [updateState, updateAction, updatePending] = useActionState(
+    updateCardioExercise,
+    initialActionState,
+  );
   const notePreview = getNotePreview(exercise.notes);
 
   return (
@@ -272,6 +280,63 @@ function CardioExerciseCard({ exercise }: { exercise: CardioExerciseListItem }) 
       <div className="mt-3 rounded-md bg-[var(--surface-strong)] px-3 py-3 text-sm font-bold text-[var(--accent)]">
         {cardioCategoryLabels[exercise.category] ?? "Cardio"}
       </div>
+
+      <details className="mt-3 rounded-md bg-[var(--surface-strong)]">
+        <summary className="flex min-h-11 cursor-pointer items-center px-3 text-sm font-bold text-[var(--accent)]">
+          Manage
+        </summary>
+        <div className="space-y-3 border-t border-[var(--border)] p-3">
+          <form action={updateAction} className="space-y-3">
+            <input name="id" type="hidden" value={exercise.id} />
+            <h4 className="text-sm font-black text-[var(--foreground)]">
+              Rename cardio exercise
+            </h4>
+
+            <div className="space-y-2">
+              <label
+                className="text-sm font-semibold text-[var(--foreground)]"
+                htmlFor={`cardio-exercise-name-${exercise.id}`}
+              >
+                Cardio exercise name
+              </label>
+              <input
+                className="min-h-12 w-full rounded-md border border-[var(--border)] bg-white px-3 text-base outline-none focus:border-[var(--accent)] disabled:bg-[var(--surface-strong)]"
+                id={`cardio-exercise-name-${exercise.id}`}
+                name="name"
+                defaultValue={exercise.name}
+                required
+                disabled={updatePending}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label
+                className="text-sm font-semibold text-[var(--foreground)]"
+                htmlFor={`cardio-exercise-notes-${exercise.id}`}
+              >
+                Notes
+              </label>
+              <textarea
+                className="min-h-20 w-full resize-y rounded-md border border-[var(--border)] bg-white px-3 py-3 text-base outline-none focus:border-[var(--accent)] disabled:bg-[var(--surface-strong)]"
+                id={`cardio-exercise-notes-${exercise.id}`}
+                name="notes"
+                defaultValue={exercise.notes ?? ""}
+                disabled={updatePending}
+              />
+            </div>
+
+            <ActionMessage state={updateState} />
+
+            <button
+              className="min-h-11 w-full rounded-md bg-[var(--accent)] px-4 text-sm font-bold text-white disabled:cursor-not-allowed disabled:bg-[var(--muted)]"
+              type="submit"
+              disabled={updatePending}
+            >
+              {updatePending ? "Saving..." : "Save rename"}
+            </button>
+          </form>
+        </div>
+      </details>
     </li>
   );
 }
