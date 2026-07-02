@@ -407,6 +407,15 @@ This file tracks what has been done, what failed, and what future Codex sessions
   - Did not click the Rest Day removal button because the project instruction says not to delete Supabase data; verified the Rest Day row and remove control are visible instead.
   - Reconfirmed through read-only Supabase SQL that July 2 has zero strength entries, one cardio entry, and zero Rest Day entries.
   - No Supabase data/schema, Vercel configuration, deployment, GitHub branch, pull request, or push was changed.
+- 2026-07-02: Changed the local `/history` calendar from volume intensity to day status:
+  - Updated the compact calendar to read strength sessions, cardio entries, and Rest Days, then show `✓` for any training day, `R` for Rest Day, and an empty square for no entry.
+  - Kept training as the visible priority if inconsistent same-date training and Rest Day data is ever encountered, while exposing the conflict in the day label.
+  - Replaced the old `Less`/`More` heatmap legend with `Training`, `Rest Day`, and `No entry`.
+  - Kept the detailed strength/cardio history list below the calendar unchanged.
+  - Updated `DECISIONS.md` to record that the History calendar now communicates day status rather than volume.
+  - Verified `npm run lint`, `npm run build`, and `git diff --check` pass.
+  - Verified in the logged-in local browser that July 1, 2026 shows `R`, July 2, 2026 shows `✓`, July 3, 2026 is blank, the old `Less`/`More` legend is gone, and Phone preview keeps the calendar visible with no browser error logs.
+  - Did not change Supabase schema, RLS, auth flow, public signup behavior, Vercel configuration, GitHub branch, pull request, push, or deployment.
 
 ## Failed Or Abandoned Attempts
 

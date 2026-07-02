@@ -42,16 +42,26 @@ type CardioExerciseRow = {
   category: string;
 };
 
-type ActivityCount = {
+type RestDayRow = {
+  id: string;
+  rest_date: string;
+  notes: string | null;
+};
+
+type DayStatus = {
   cardio: number;
+  rest: number;
   strength: number;
 };
 
+type CalendarDayKind = "empty" | "rest" | "training";
+
 type CalendarDay = {
-  count: number;
   date: Date;
   dateKey: string;
+  hasConflict: boolean;
   isOutsideYear: boolean;
+  status: CalendarDayKind;
 };
 
 type CalendarMonthSpan = {
@@ -217,27 +227,68 @@ function formatCardioDetails(entry: CardioEntryRow) {
     .join(" - ");
 }
 
-function getActivityColor(count: number, isInactive: boolean) {
-  if (isInactive) {
-    return "transparent";
+function getCalendarStatus(dayStatus?: DayStatus): CalendarDayKind {
+  if (dayStatus?.strength || dayStatus?.cardio) {
+    return "training";
   }
 
-  if (count <= 0) {
-    return "var(--surface-strong)";
+  if (dayStatus?.rest) {
+    return "rest";
   }
 
-  if (count === 1) {
-    return "var(--accent-soft)";
-  }
-
-  if (count === 2) {
-    return "#88b5a6";
-  }
-
-  return "var(--accent)";
+  return "empty";
 }
 
-function buildCalendarWeeks(activityByDate: Map<string, ActivityCount>) {
+function getCalendarDayLabel(day: CalendarDay) {
+  if (day.isOutsideYear) {
+    return "Outside current year";
+  }
+
+  if (day.status === "training") {
+    return day.hasConflict
+      ? `${day.dateKey}: Training, Rest Day conflict`
+      : `${day.dateKey}: Training`;
+  }
+
+  if (day.status === "rest") {
+    return `${day.dateKey}: Rest Day`;
+  }
+
+  return `${day.dateKey}: No entry`;
+}
+
+function getCalendarDayClassName(day: CalendarDay) {
+  const baseClass =
+    "inline-flex h-5 w-5 items-center justify-center rounded-[4px] border text-[0.68rem] font-black leading-none";
+
+  if (day.isOutsideYear) {
+    return `${baseClass} border-transparent bg-transparent text-transparent`;
+  }
+
+  if (day.status === "training") {
+    return `${baseClass} border-[var(--accent)] bg-[var(--accent)] text-white`;
+  }
+
+  if (day.status === "rest") {
+    return `${baseClass} border-[var(--border)] bg-[var(--surface-strong)] text-[var(--foreground)]`;
+  }
+
+  return `${baseClass} border-[var(--border)] bg-[var(--surface-strong)] text-transparent`;
+}
+
+function getCalendarDayContent(day: CalendarDay) {
+  if (day.status === "training") {
+    return "✓";
+  }
+
+  if (day.status === "rest") {
+    return "R";
+  }
+
+  return "";
+}
+
+function buildCalendarWeeks(dayStatusByDate: Map<string, DayStatus>) {
   const today = new Date();
   today.setUTCHours(0, 0, 0, 0);
   const targetYear = today.getUTCFullYear();
@@ -255,15 +306,18 @@ function buildCalendarWeeks(activityByDate: Map<string, ActivityCount>) {
     for (let index = 0; index < 7; index += 1) {
       const date = new Date(cursor);
       const dateKey = toDateKey(date);
-      const activity = activityByDate.get(dateKey);
+      const dayStatus = dayStatusByDate.get(dateKey);
       const isOutsideYear = date.getUTCFullYear() !== targetYear;
-      const count = (activity?.strength ?? 0) + (activity?.cardio ?? 0);
+      const status = getCalendarStatus(dayStatus);
 
       week.push({
-        count,
         date,
         dateKey,
+        hasConflict: Boolean(
+          dayStatus?.rest && (dayStatus.strength || dayStatus.cardio),
+        ),
         isOutsideYear,
+        status,
       });
 
       cursor = addDays(cursor, 1);
@@ -328,14 +382,18 @@ function buildCalendarMonthSpans(calendarWeeks: CalendarDay[][]) {
   return spans;
 }
 
-function addActivityCount(
-  activityByDate: Map<string, ActivityCount>,
+function addDayStatus(
+  dayStatusByDate: Map<string, DayStatus>,
   dateKey: string,
-  kind: "cardio" | "strength",
+  kind: "cardio" | "rest" | "strength",
 ) {
-  const count = activityByDate.get(dateKey) ?? { cardio: 0, strength: 0 };
-  count[kind] += 1;
-  activityByDate.set(dateKey, count);
+  const status = dayStatusByDate.get(dateKey) ?? {
+    cardio: 0,
+    rest: 0,
+    strength: 0,
+  };
+  status[kind] += 1;
+  dayStatusByDate.set(dateKey, status);
 }
 
 function groupHistoryItems(historyItems: HistoryItem[]): HistoryYearGroup[] {
@@ -639,6 +697,12 @@ export default async function HistoryPage() {
   const cardioExerciseById = new Map(
     cardioExercises.map((exercise) => [exercise.id, exercise]),
   );
+  const restDaysResult = await supabase
+    .from("rest_days")
+    .select("id, rest_date, notes")
+    .order("rest_date", { ascending: false })
+    .limit(120);
+  const restDays = (restDaysResult.data ?? []) as RestDayRow[];
 
   const setsBySessionId = new Map<string, WorkoutSetRow[]>();
   workoutSets.forEach((set) => {
@@ -647,12 +711,15 @@ export default async function HistoryPage() {
     setsBySessionId.set(set.session_id, sessionSets);
   });
 
-  const activityByDate = new Map<string, ActivityCount>();
+  const dayStatusByDate = new Map<string, DayStatus>();
   workoutSessions.forEach((session) => {
-    addActivityCount(activityByDate, session.workout_date, "strength");
+    addDayStatus(dayStatusByDate, session.workout_date, "strength");
   });
   cardioEntries.forEach((entry) => {
-    addActivityCount(activityByDate, entry.cardio_date, "cardio");
+    addDayStatus(dayStatusByDate, entry.cardio_date, "cardio");
+  });
+  restDays.forEach((restDay) => {
+    addDayStatus(dayStatusByDate, restDay.rest_date, "rest");
   });
 
   const strengthItems: HistoryItem[] = workoutSessions.map((session) => {
@@ -699,18 +766,22 @@ export default async function HistoryPage() {
   const historyItems = [...strengthItems, ...cardioItems].toSorted((left, right) =>
     right.sortKey.localeCompare(left.sortKey),
   );
-  const calendarWeeks = buildCalendarWeeks(activityByDate);
+  const calendarWeeks = buildCalendarWeeks(dayStatusByDate);
   const calendarMonthSpans = buildCalendarMonthSpans(calendarWeeks);
   const historyGroups = groupHistoryItems(historyItems);
   const strengthCount = workoutSessions.length;
   const cardioCount = cardioEntries.length;
-  const activeDayCount = activityByDate.size;
+  const restDayCount = restDays.length;
+  const activeDayCount = Array.from(dayStatusByDate.values()).filter(
+    (status) => status.strength || status.cardio,
+  ).length;
   const hasLoadError =
     workoutsResult.error ||
     setsResult.error ||
     exercisesResult.error ||
     cardioResult.error ||
-    cardioExercisesResult.error;
+    cardioExercisesResult.error ||
+    restDaysResult.error;
 
   return (
     <AppShell>
@@ -739,6 +810,9 @@ export default async function HistoryPage() {
           <span className="rounded-md bg-[var(--surface-strong)] px-3 py-2 text-sm font-black uppercase text-[var(--foreground)]">
             {activeDayCount} active days
           </span>
+          <span className="rounded-md bg-[var(--surface-strong)] px-3 py-2 text-sm font-black uppercase text-[var(--foreground)]">
+            {restDayCount} rest days
+          </span>
         </div>
 
         <section className="rounded-md border border-[var(--border)] bg-[var(--surface)] p-4 shadow-sm">
@@ -747,7 +821,7 @@ export default async function HistoryPage() {
               <div
                 className="ml-12 grid gap-1 text-center text-[0.68rem] font-bold text-[var(--muted)]"
                 style={{
-                  gridTemplateColumns: `repeat(${calendarWeeks.length}, 1rem)`,
+                  gridTemplateColumns: `repeat(${calendarWeeks.length}, 1.25rem)`,
                 }}
               >
                 {calendarMonthSpans.map((month) => (
@@ -766,7 +840,7 @@ export default async function HistoryPage() {
               <div className="mt-1 flex gap-3">
                 <div className="grid grid-rows-7 gap-1 pt-px text-right text-xs font-bold text-[var(--muted)]">
                   {["", "Mon", "", "Wed", "", "Fri", ""].map((label, index) => (
-                    <span className="h-4" key={`${label}-${index}`}>
+                    <span className="h-5" key={`${label}-${index}`}>
                       {label}
                     </span>
                   ))}
@@ -775,44 +849,43 @@ export default async function HistoryPage() {
                 <div className="grid grid-flow-col grid-rows-7 gap-1">
                   {calendarWeeks.flat().map((day) => (
                     <span
-                      aria-label={
-                        day.isOutsideYear
-                          ? "Outside current year"
-                          : `${day.dateKey}: ${day.count} sessions`
-                      }
-                      className="h-4 w-4 rounded-[4px] border border-[var(--border)]"
+                      aria-label={getCalendarDayLabel(day)}
+                      className={getCalendarDayClassName(day)}
                       key={day.dateKey}
-                      style={{
-                        backgroundColor: getActivityColor(
-                          day.count,
-                          day.isOutsideYear,
-                        ),
-                        borderColor:
-                          day.isOutsideYear
-                            ? "transparent"
-                            : "var(--border)",
-                      }}
-                      title={
-                        day.isOutsideYear
-                          ? "Outside current year"
-                          : `${day.dateKey}: ${day.count} sessions`
-                      }
-                    />
+                      title={getCalendarDayLabel(day)}
+                    >
+                      {getCalendarDayContent(day)}
+                    </span>
                   ))}
                 </div>
               </div>
 
-              <div className="mt-4 flex items-center gap-2 text-xs font-black uppercase text-[var(--muted)]">
-                <span>Less</span>
-                {[0, 1, 2, 3].map((count) => (
+              <div className="mt-4 flex flex-wrap items-center gap-3 text-xs font-black uppercase text-[var(--muted)]">
+                <span className="inline-flex items-center gap-2">
                   <span
                     aria-hidden="true"
-                    className="h-4 w-4 rounded-[4px] border border-[var(--border)]"
-                    key={count}
-                    style={{ backgroundColor: getActivityColor(count, false) }}
+                    className="inline-flex h-5 w-5 items-center justify-center rounded-[4px] border border-[var(--accent)] bg-[var(--accent)] text-[0.68rem] font-black leading-none text-white"
+                  >
+                    ✓
+                  </span>
+                  Training
+                </span>
+                <span className="inline-flex items-center gap-2">
+                  <span
+                    aria-hidden="true"
+                    className="inline-flex h-5 w-5 items-center justify-center rounded-[4px] border border-[var(--border)] bg-[var(--surface-strong)] text-[0.68rem] font-black leading-none text-[var(--foreground)]"
+                  >
+                    R
+                  </span>
+                  Rest Day
+                </span>
+                <span className="inline-flex items-center gap-2">
+                  <span
+                    aria-hidden="true"
+                    className="inline-flex h-5 w-5 items-center justify-center rounded-[4px] border border-[var(--border)] bg-[var(--surface-strong)]"
                   />
-                ))}
-                <span>More</span>
+                  No entry
+                </span>
               </div>
             </div>
           </div>

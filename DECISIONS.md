@@ -111,3 +111,9 @@ This file records important project decisions. Add new entries when the project 
 - **Reason:** Version 1 users need one fast place to review what happened on recent dates. Cardio-only dates are training days and should not look blank just because they are stored outside strength `workout_sessions`.
 - **Alternatives considered:** keep `/workouts` strength-only and rely on `/cardio` plus `/history` for cardio visibility.
 - **Consequences:** `/workouts` remains the strength-entry route family, but the top-level `/workouts` list includes strength sessions, cardio entries, and Rest Days as recent day-level activity. Cardio records continue to live in `cardio_entries`; no schema merge or new table is introduced.
+
+### Decision: Show the History calendar as day status, not volume
+
+- **Reason:** The owner wants the calendar to answer whether a date was training, rest, or blank, without implying workout quality or intensity from entry count.
+- **Alternatives considered:** keep the GitHub-style Less/More intensity heatmap, or create separate strength/cardio/rest stacked markers.
+- **Consequences:** `/history` still reads existing strength, cardio, and Rest Day rows, but the compact calendar shows a check mark for any training day, `R` for Rest Day, and an empty square for no entry. Training remains the visible priority if inconsistent same-day data is ever encountered.
