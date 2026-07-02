@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { AppShell } from "../_components/app-shell";
 import { PlaceholderPage } from "../_components/placeholder-page";
+import { removeRestDay } from "@/app/_actions/rest-days";
 import { requireAuth } from "@/lib/auth/require-auth";
 import { createClient } from "@/lib/supabase/server";
 
@@ -29,18 +30,58 @@ type ExerciseRow = {
   name: string;
 };
 
+type RestDayRow = {
+  id: string;
+  rest_date: string;
+  notes: string | null;
+};
+
+type CardioEntryRow = {
+  id: string;
+  cardio_exercise_id: string;
+  cardio_date: string;
+  duration_seconds: number;
+  distance_value: number | string | null;
+  distance_unit: "km" | "mi";
+  calories: number | null;
+  notes: string | null;
+  created_at: string;
+};
+
+type CardioExerciseRow = {
+  id: string;
+  name: string;
+  category: string;
+};
+
 type SessionHistory = WorkoutSession & {
   exerciseCount: number;
   exerciseNames: string[];
   setCount: number;
 };
 
+type CardioEntryHistory = CardioEntryRow & {
+  details: string;
+  title: string;
+};
+
 type WorkoutDayHistory = {
+  cardioEntries: CardioEntryHistory[];
   date: string;
   exerciseCount: number;
   exerciseNames: string[];
+  restDay: RestDayRow | null;
   sessions: SessionHistory[];
   setCount: number;
+};
+
+const categoryLabels: Record<string, string> = {
+  indoor_walking: "Indoor Walking",
+  outdoor_walking: "Outdoor Walking",
+  indoor_running: "Indoor Running",
+  outdoor_running: "Outdoor Running",
+  cycling: "Indoor Cycling",
+  elliptical: "Elliptical",
 };
 
 function formatWorkoutDateParts(value: string) {
@@ -76,7 +117,52 @@ function formatSetExerciseSummary({
     : "No sets yet";
 }
 
-function formatDaySummary(day: WorkoutDayHistory) {
+function formatDuration(totalSeconds: number) {
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.round((totalSeconds % 3600) / 60);
+
+  if (hours > 0 && minutes > 0) {
+    return `${hours}h ${minutes}m`;
+  }
+
+  if (hours > 0) {
+    return `${hours}h`;
+  }
+
+  return `${minutes}m`;
+}
+
+function formatNumber(value: number | string) {
+  const numberValue = Number(value);
+
+  if (!Number.isFinite(numberValue)) {
+    return String(value);
+  }
+
+  return Number.isInteger(numberValue) ? String(numberValue) : String(numberValue);
+}
+
+function formatDistance(value: number | string | null, unit: string) {
+  if (value === null) {
+    return "No distance";
+  }
+
+  return `${formatNumber(value)} ${unit}`;
+}
+
+function formatCardioDetails(entry: CardioEntryRow) {
+  return [
+    formatDuration(entry.duration_seconds),
+    entry.distance_value === null
+      ? null
+      : formatDistance(entry.distance_value, entry.distance_unit),
+    entry.calories === null ? "No kcal" : `${entry.calories} kcal`,
+  ]
+    .filter(Boolean)
+    .join(" - ");
+}
+
+function formatStrengthDaySummary(day: WorkoutDayHistory) {
   const sessionCount = day.sessions.length;
   const sessionSummary = `${sessionCount} ${
     sessionCount === 1 ? "session" : "sessions"
@@ -87,6 +173,39 @@ function formatDaySummary(day: WorkoutDayHistory) {
   }
 
   return `${sessionSummary} - ${formatSetExerciseSummary(day)}`;
+}
+
+function formatCardioDaySummary(cardioEntries: CardioEntryHistory[]) {
+  if (cardioEntries.length === 1) {
+    return `Cardio - ${cardioEntries[0].details}`;
+  }
+
+  const calories = cardioEntries.reduce(
+    (total, entry) => total + (entry.calories ?? 0),
+    0,
+  );
+
+  return `${cardioEntries.length} cardio entries${
+    calories ? ` - ${calories} kcal` : ""
+  }`;
+}
+
+function formatDaySummary(day: WorkoutDayHistory) {
+  const parts: string[] = [];
+
+  if (day.sessions.length) {
+    parts.push(formatStrengthDaySummary(day));
+  }
+
+  if (day.cardioEntries.length) {
+    parts.push(formatCardioDaySummary(day.cardioEntries));
+  }
+
+  if (day.restDay) {
+    parts.push("rest day logged");
+  }
+
+  return parts.join(" - ");
 }
 
 function buildSessionHistory({
@@ -125,17 +244,52 @@ function buildSessionHistory({
   });
 }
 
-function buildWorkoutDayHistory(sessions: SessionHistory[]) {
+function buildCardioEntryHistory({
+  cardioExerciseById,
+  entries,
+}: {
+  cardioExerciseById: Map<string, CardioExerciseRow>;
+  entries: CardioEntryRow[];
+}): CardioEntryHistory[] {
+  return entries.map((entry) => {
+    const exercise = cardioExerciseById.get(entry.cardio_exercise_id);
+
+    return {
+      ...entry,
+      details: formatCardioDetails(entry),
+      title:
+        exercise?.name ??
+        categoryLabels[exercise?.category ?? ""] ??
+        "Cardio session",
+    };
+  });
+}
+
+function buildWorkoutDayHistory(
+  cardioEntries: CardioEntryHistory[],
+  sessions: SessionHistory[],
+  restDays: RestDayRow[],
+) {
   const days = new Map<string, WorkoutDayHistory>();
 
-  sessions.forEach((session) => {
-    const day = days.get(session.workout_date) ?? {
-      date: session.workout_date,
+  const getDay = (date: string) => {
+    const day = days.get(date) ?? {
+      cardioEntries: [],
+      date,
       exerciseCount: 0,
       exerciseNames: [],
+      restDay: null,
       sessions: [],
       setCount: 0,
     };
+
+    days.set(date, day);
+
+    return day;
+  };
+
+  sessions.forEach((session) => {
+    const day = getDay(session.workout_date);
 
     day.sessions.push(session);
     day.setCount += session.setCount;
@@ -147,10 +301,27 @@ function buildWorkoutDayHistory(sessions: SessionHistory[]) {
     });
 
     day.exerciseCount = day.exerciseNames.length;
-    days.set(session.workout_date, day);
   });
 
-  return Array.from(days.values());
+  cardioEntries.forEach((entry) => {
+    getDay(entry.cardio_date).cardioEntries.push(entry);
+  });
+
+  restDays.forEach((restDay) => {
+    getDay(restDay.rest_date).restDay = restDay;
+  });
+
+  return Array.from(days.values())
+    .map((day) => ({
+      ...day,
+      cardioEntries: day.cardioEntries.toSorted((left, right) =>
+        right.created_at.localeCompare(left.created_at),
+      ),
+      sessions: day.sessions.toSorted((left, right) =>
+        right.created_at.localeCompare(left.created_at),
+      ),
+    }))
+    .toSorted((left, right) => right.date.localeCompare(left.date));
 }
 
 function getWorkoutTitle(exerciseNames: string[]) {
@@ -159,6 +330,27 @@ function getWorkoutTitle(exerciseNames: string[]) {
   return visibleExerciseNames.length
     ? visibleExerciseNames.join(", ")
     : "Workout draft";
+}
+
+function getDayTitle(day: WorkoutDayHistory) {
+  const titles = Array.from(
+    new Set([
+      ...day.exerciseNames,
+      ...day.cardioEntries.map((entry) => entry.title),
+    ]),
+  ).filter(Boolean);
+  const visibleTitles = titles.slice(0, 2);
+
+  return visibleTitles.length ? visibleTitles.join(", ") : "Workout draft";
+}
+
+function getHiddenActivityTitleCount(day: WorkoutDayHistory) {
+  const titleCount = new Set([
+    ...day.exerciseNames,
+    ...day.cardioEntries.map((entry) => entry.title),
+  ]).size;
+
+  return Math.max(0, titleCount - 2);
 }
 
 export default async function WorkoutsPage() {
@@ -195,19 +387,51 @@ export default async function WorkoutsPage() {
   const exerciseNameById = new Map(
     exercises.map((exercise) => [exercise.id, exercise.name]),
   );
+  const restDaysResult = await supabase
+    .from("rest_days")
+    .select("id, rest_date, notes")
+    .order("rest_date", { ascending: false })
+    .limit(10);
+  const restDays = (restDaysResult.data ?? []) as RestDayRow[];
+  const cardioResult = await supabase
+    .from("cardio_entries")
+    .select(
+      "id, cardio_exercise_id, cardio_date, duration_seconds, distance_value, distance_unit, calories, notes, created_at",
+    )
+    .order("cardio_date", { ascending: false })
+    .order("created_at", { ascending: false })
+    .limit(10);
+  const cardioEntries = (cardioResult.data ?? []) as CardioEntryRow[];
+  const cardioExerciseIds = Array.from(
+    new Set(cardioEntries.map((entry) => entry.cardio_exercise_id)),
+  );
+  const cardioExercisesResult = cardioExerciseIds.length
+    ? await supabase
+        .from("cardio_exercises")
+        .select("id, name, category")
+        .in("id", cardioExerciseIds)
+    : { data: [], error: null };
+  const cardioExercises = (cardioExercisesResult.data ?? []) as CardioExerciseRow[];
+  const cardioExerciseById = new Map(
+    cardioExercises.map((exercise) => [exercise.id, exercise]),
+  );
   const history = buildSessionHistory({
     exerciseNameById,
     sessions,
     sets,
   });
-  const workoutDays = buildWorkoutDayHistory(history);
+  const cardioHistory = buildCardioEntryHistory({
+    cardioExerciseById,
+    entries: cardioEntries,
+  });
+  const workoutDays = buildWorkoutDayHistory(cardioHistory, history, restDays);
 
   return (
     <AppShell>
       <PlaceholderPage
         eyebrow="Workouts"
-        title="Recent workouts"
-        description="Review recent sessions at a glance."
+        title="Recent activity and rest days"
+        description="Review strength, cardio, Rest Days, and quick corrections at a glance."
         actions={
           <Link
             href="/workouts/new"
@@ -217,7 +441,12 @@ export default async function WorkoutsPage() {
           </Link>
         }
       >
-        {error || setsResult.error || exercisesResult.error ? (
+        {error ||
+        setsResult.error ||
+        exercisesResult.error ||
+        restDaysResult.error ||
+        cardioResult.error ||
+        cardioExercisesResult.error ? (
           <div
             className="rounded-md border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-700"
             role="alert"
@@ -231,13 +460,22 @@ export default async function WorkoutsPage() {
             {workoutDays.map((day) => {
               const dateParts = formatWorkoutDateParts(day.date);
               const session = day.sessions[0];
-              const isSingleSession = day.sessions.length === 1;
-              const dayTitle = getWorkoutTitle(day.exerciseNames);
-              const hiddenExerciseCount =
-                day.exerciseNames.length - day.exerciseNames.slice(0, 2).length;
-              const daySummary = isSingleSession
-                ? formatSetExerciseSummary(day)
-                : formatDaySummary(day);
+              const cardioEntry = day.cardioEntries[0];
+              const isRestOnly =
+                day.sessions.length === 0 &&
+                day.cardioEntries.length === 0 &&
+                day.restDay;
+              const isSingleSession =
+                day.sessions.length === 1 &&
+                day.cardioEntries.length === 0 &&
+                !day.restDay;
+              const isSingleCardio =
+                day.sessions.length === 0 &&
+                day.cardioEntries.length === 1 &&
+                !day.restDay;
+              const dayTitle = getDayTitle(day);
+              const hiddenActivityCount = getHiddenActivityTitleCount(day);
+              const daySummary = formatDaySummary(day);
               const dateTile = (
                 <div className="flex h-14 w-14 shrink-0 flex-col items-center justify-center rounded-md border border-[var(--border)] bg-[var(--surface-strong)] text-center">
                   <span className="text-[0.68rem] font-black uppercase text-[var(--muted)]">
@@ -257,13 +495,66 @@ export default async function WorkoutsPage() {
                     {daySummary}
                   </p>
 
-                  {hiddenExerciseCount > 0 ? (
+                  {hiddenActivityCount > 0 ? (
                     <p className="mt-1 text-xs font-bold uppercase text-[var(--muted)]">
-                      +{hiddenExerciseCount} more exercises
+                      +{hiddenActivityCount} more activities
                     </p>
                   ) : null}
                 </div>
               );
+
+              if (isRestOnly && day.restDay) {
+                return (
+                  <li key={day.date}>
+                    <div className="flex min-h-20 items-center gap-3 rounded-md border border-[var(--border)] bg-[var(--surface)] p-3 shadow-sm">
+                      {dateTile}
+                      <div className="min-w-0 flex-1">
+                        <h2 className="truncate text-base font-black text-[var(--foreground)]">
+                          Rest day
+                        </h2>
+                        <p className="mt-1 truncate text-sm font-semibold text-[var(--muted)]">
+                          {day.restDay.notes ?? "Recovery day - no training logged"}
+                        </p>
+                      </div>
+                      <form action={removeRestDay}>
+                        <input
+                          name="rest_day_id"
+                          type="hidden"
+                          value={day.restDay.id}
+                        />
+                        <button
+                          aria-label={`Remove rest day on ${dateParts.label}`}
+                          className="inline-flex min-h-10 shrink-0 items-center justify-center rounded-md border border-[var(--border)] bg-white px-3 text-sm font-bold text-[var(--muted)]"
+                          type="submit"
+                        >
+                          Remove
+                        </button>
+                      </form>
+                    </div>
+                  </li>
+                );
+              }
+
+              if (isSingleCardio && cardioEntry) {
+                return (
+                  <li key={day.date}>
+                    <Link
+                      aria-label={`Open cardio entry from ${dateParts.label}`}
+                      className="flex min-h-20 items-center gap-3 rounded-md border border-[var(--border)] bg-[var(--surface)] p-3 shadow-sm transition hover:border-[var(--accent)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+                      href="/cardio"
+                    >
+                      {dateTile}
+                      {dayText}
+                      <span className="inline-flex min-h-10 shrink-0 items-center justify-center rounded-md border border-[var(--border)] bg-white px-3 text-sm font-bold text-[var(--accent)]">
+                        Open
+                        <span aria-hidden="true" className="ml-2 text-base leading-none">
+                          &gt;
+                        </span>
+                      </span>
+                    </Link>
+                  </li>
+                );
+              }
 
               return isSingleSession && session ? (
                 <li key={day.date}>
@@ -289,7 +580,7 @@ export default async function WorkoutsPage() {
                       {dateTile}
                       {dayText}
                       <span className="inline-flex min-h-10 shrink-0 items-center justify-center rounded-md border border-[var(--border)] bg-white px-3 text-sm font-bold text-[var(--accent)]">
-                        Sessions
+                        Entries
                         <span aria-hidden="true" className="ml-2 text-base leading-none">
                           &gt;
                         </span>
@@ -325,6 +616,26 @@ export default async function WorkoutsPage() {
                           </li>
                         );
                       })}
+                      {day.cardioEntries.map((dayCardioEntry) => (
+                        <li key={`cardio-${dayCardioEntry.id}`}>
+                          <Link
+                            className="flex min-h-14 items-center justify-between gap-3 rounded-md border border-[var(--border)] bg-[var(--surface)] px-3 py-2 transition hover:border-[var(--accent)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+                            href="/cardio"
+                          >
+                            <div className="min-w-0">
+                              <p className="truncate text-sm font-black text-[var(--foreground)]">
+                                {dayCardioEntry.title}
+                              </p>
+                              <p className="mt-1 truncate text-xs font-bold text-[var(--muted)]">
+                                Cardio - {dayCardioEntry.details}
+                              </p>
+                            </div>
+                            <span className="shrink-0 text-sm font-black text-[var(--accent)]">
+                              Open &gt;
+                            </span>
+                          </Link>
+                        </li>
+                      ))}
                     </ul>
                   </details>
                 </li>
@@ -333,7 +644,7 @@ export default async function WorkoutsPage() {
           </ul>
         ) : (
           <div className="rounded-md border border-dashed border-[var(--border)] bg-[var(--surface)] p-5 text-base leading-7 text-[var(--muted)]">
-            No workout sessions yet. Start your first workout.
+            No activity yet. Start strength, record cardio, or log a Rest Day.
           </div>
         )}
       </PlaceholderPage>

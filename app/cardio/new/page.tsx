@@ -2,6 +2,7 @@ import { AppShell } from "../../_components/app-shell";
 import { PlaceholderPage } from "../../_components/placeholder-page";
 import { requireAuth } from "@/lib/auth/require-auth";
 import { createClient } from "@/lib/supabase/server";
+import { getLocalDateKey } from "@/lib/training/dates";
 import { NewCardioForm, type CardioExerciseOption } from "./new-cardio-form";
 
 export const dynamic = "force-dynamic";
@@ -12,15 +13,6 @@ type CardioExerciseRow = {
   category: string;
   default_distance_unit: "km" | "mi";
 };
-
-function getTodayDateInputValue() {
-  const today = new Date();
-  const year = today.getFullYear();
-  const month = String(today.getMonth() + 1).padStart(2, "0");
-  const day = String(today.getDate()).padStart(2, "0");
-
-  return `${year}-${month}-${day}`;
-}
 
 export default async function NewCardioPage() {
   await requireAuth("/cardio/new");
@@ -56,7 +48,7 @@ export default async function NewCardioPage() {
           </div>
         ) : null}
         <NewCardioForm
-          defaultDate={getTodayDateInputValue()}
+          defaultDate={getLocalDateKey()}
           exercises={exercises}
         />
       </PlaceholderPage>

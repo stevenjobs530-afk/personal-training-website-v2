@@ -2,6 +2,13 @@ import Link from "next/link";
 import { AppShell } from "../_components/app-shell";
 import { PlaceholderPage } from "../_components/placeholder-page";
 import { requireAuth } from "@/lib/auth/require-auth";
+import { createClient } from "@/lib/supabase/server";
+import { formatDateKey, getLocalDateKey } from "@/lib/training/dates";
+import {
+  backfillMissingRestDays,
+  getDayActivityStatus,
+} from "@/lib/training/rest-days";
+import { TodayRestDayCard } from "./today-rest-day-card";
 
 export const dynamic = "force-dynamic";
 
@@ -22,14 +29,46 @@ const trainingChoices = [
 
 export default async function DashboardPage() {
   await requireAuth("/dashboard");
+  const supabase = await createClient();
+  const { data: userData } = await supabase.auth.getUser();
+  const userId = userData.user?.id;
+  const todayDateKey = getLocalDateKey();
+  const backfillResult = userId
+    ? await backfillMissingRestDays({
+        supabase,
+        todayDateKey,
+        userId,
+      })
+    : { insertedDates: [], setupError: undefined };
+  const todayStatus = userId
+    ? await getDayActivityStatus({
+        dateKey: todayDateKey,
+        supabase,
+        userId,
+      })
+    : {
+        hasCardio: false,
+        hasStrength: false,
+        restDay: null,
+        setupError: "Sign in again before changing Rest Days.",
+      };
 
   return (
     <AppShell>
       <PlaceholderPage
-        eyebrow="Dashboard"
-        title="Choose workout type"
-        description="Pick the training type manually. Strength and Cardio stay separate so each workout is logged in the right format."
+        eyebrow="Today"
+        title="Today's training"
+        description="Choose strength, cardio, or mark today as a Rest Day."
       >
+        <TodayRestDayCard
+          backfilledDates={backfillResult.insertedDates}
+          hasCardio={todayStatus.hasCardio}
+          hasStrength={todayStatus.hasStrength}
+          restDay={todayStatus.restDay}
+          setupError={todayStatus.setupError ?? backfillResult.setupError}
+          todayLabel={formatDateKey(todayDateKey)}
+        />
+
         <div className="grid gap-3 sm:grid-cols-2">
           {trainingChoices.map((choice) => (
             <Link

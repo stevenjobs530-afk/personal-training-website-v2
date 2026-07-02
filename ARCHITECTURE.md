@@ -57,6 +57,8 @@ The backend is Supabase:
 - `workout_sets` stores warmup and working set rows.
 - `cardio_exercises` stores user-owned aerobic/cardio exercise names and categories.
 - `cardio_entries` stores duration, required kcal, conditional distance, and notes for cardio work.
+- `rest_days` stores user-owned recovery days for blank dates that should be
+  recorded as rest rather than training.
 
 The planned schema is documented in `DATABASE_SCHEMA.md`.
 
@@ -111,6 +113,8 @@ Desktop should support review and maintenance, but iPhone recording speed is the
 - view recent workout history
 - view a combined strength/cardio history overview
 - record aerobic/cardio work separately from strength sets
+- mark blank dates as Rest Days and backfill missed blank dates after the owner
+  next opens the app
 - simple refresh/refetch behavior
 - mobile-friendly layout
 

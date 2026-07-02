@@ -27,6 +27,8 @@ Version 1 should include:
 - view a combined strength/cardio training history overview
 - view lightweight derived exercise progress trends
 - record aerobic/cardio entries separately from strength sets
+- record Rest Days for blank recovery dates
+- automatically backfill missed blank dates as Rest Days on the next app visit
 - mobile-friendly layout for iPhone
 - responsive layout for iPad and macOS
 - simple refresh/refetch behavior after changes
@@ -54,6 +56,16 @@ Stage 5 adds an Aerobic / Cardio Logging MVP:
 The 2026-06-27 local preview update adds a protected `/history` overview that combines strength sessions and cardio entries into a frequency grid and compact session cards. This is a read-only history surface and does not change the underlying workout or cardio data models.
 
 The later 2026-06-27 polish pass makes `/history` collapsible by year, month, and day; groups `/exercises` into Anaerobic and Aerobic sections; and changes `/progress` from a placeholder into a searchable accordion with simple SVG trend charts. Cardio-only exercise names are kept out of strength training selectors and trend lists so Indoor Walking remains an Aerobic/Cardio item.
+
+Stage 6 adds a simple Rest Day flow:
+
+- `/dashboard` is the Today page and includes a `Today is Rest Day` action.
+- Rest Days use the `rest_days` table and are owner-scoped with RLS.
+- Rest Days cannot share a date with strength workout sessions or cardio entries.
+- The Today page uses `profiles.last_seen_date` to backfill missed blank
+  calendar dates as Rest Days when the owner next opens the app.
+- Corrections stay simple: remove a Rest Day from Today or Workouts, then record
+  the missed workout or cardio entry.
 
 ## Version 1 Route Candidates
 

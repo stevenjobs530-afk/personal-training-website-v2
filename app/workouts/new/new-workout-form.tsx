@@ -2,9 +2,10 @@
 
 import { useActionState } from "react";
 import {
-  createWorkoutSession,
-  type WorkoutActionState,
-} from "../actions";
+  logSelectedRestDay,
+  type RestDayActionState,
+} from "@/app/_actions/rest-days";
+import { createWorkoutSession, type WorkoutActionState } from "../actions";
 
 type NewWorkoutFormProps = {
   defaultDate: string;
@@ -15,9 +16,24 @@ const initialActionState: WorkoutActionState = {
   message: "",
 };
 
-function ActionMessage({ state }: { state: WorkoutActionState }) {
+function ActionMessage({
+  state,
+}: {
+  state: WorkoutActionState | RestDayActionState;
+}) {
   if (!state.message) {
     return null;
+  }
+
+  if (state.status === "success") {
+    return (
+      <p
+        className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-700"
+        role="status"
+      >
+        {state.message}
+      </p>
+    );
   }
 
   return (
@@ -35,6 +51,11 @@ export function NewWorkoutForm({ defaultDate }: NewWorkoutFormProps) {
     createWorkoutSession,
     initialActionState,
   );
+  const [restState, restFormAction, restPending] = useActionState(
+    logSelectedRestDay,
+    initialActionState,
+  );
+  const busy = pending || restPending;
 
   return (
     <form
@@ -51,7 +72,7 @@ export function NewWorkoutForm({ defaultDate }: NewWorkoutFormProps) {
         <input
           className="min-h-12 w-full rounded-md border border-[var(--border)] bg-white px-3 text-base outline-none focus:border-[var(--accent)] disabled:bg-[var(--surface-strong)]"
           defaultValue={defaultDate}
-          disabled={pending}
+          disabled={busy}
           id="workout-date"
           name="workout_date"
           required
@@ -72,7 +93,7 @@ export function NewWorkoutForm({ defaultDate }: NewWorkoutFormProps) {
           </label>
           <textarea
             className="min-h-16 w-full resize-y rounded-md border border-[var(--border)] bg-white px-3 py-3 text-base outline-none focus:border-[var(--accent)] disabled:bg-[var(--surface-strong)]"
-            disabled={pending}
+            disabled={busy}
             id="workout-notes"
             name="notes"
             placeholder="Anything about the whole session"
@@ -81,14 +102,27 @@ export function NewWorkoutForm({ defaultDate }: NewWorkoutFormProps) {
       </details>
 
       <ActionMessage state={state} />
+      <ActionMessage state={restState} />
 
       <button
         className="min-h-12 w-full rounded-md bg-[var(--accent)] px-4 text-base font-bold text-white disabled:cursor-not-allowed disabled:bg-[var(--muted)]"
-        disabled={pending}
+        disabled={busy}
         type="submit"
       >
         {pending ? "Creating..." : "Create workout"}
       </button>
+
+      <button
+        className="min-h-12 w-full rounded-md border border-[var(--border)] bg-white px-4 text-base font-bold text-[var(--accent)] disabled:cursor-not-allowed disabled:text-[var(--muted)]"
+        disabled={busy}
+        formAction={restFormAction}
+        type="submit"
+      >
+        {restPending ? "Logging Rest Day..." : "Log selected date as Rest Day"}
+      </button>
+      <p className="text-sm leading-6 text-[var(--muted)]">
+        Not training? Log the selected date as a Rest Day instead.
+      </p>
     </form>
   );
 }

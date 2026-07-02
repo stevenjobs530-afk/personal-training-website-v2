@@ -1,6 +1,6 @@
 # DATABASE_SCHEMA.md
 
-Last updated: 2026-06-23
+Last updated: 2026-07-02
 
 ## Database Goal
 
@@ -32,6 +32,7 @@ Fields:
 
 - `id uuid primary key references auth.users(id) on delete cascade`
 - `display_name text`
+- `last_seen_date date`
 - `created_at timestamptz not null default now()`
 - `updated_at timestamptz not null default now()`
 
@@ -46,6 +47,7 @@ RLS expectation:
 Notes:
 
 - Do not store passwords, credentials, or private third-party tokens here.
+- `last_seen_date` stores the last local calendar date the owner opened the app. It is used only to backfill missed blank days as Rest Days.
 
 ## Table: exercises
 
@@ -200,6 +202,44 @@ RLS expectation:
 - the Stage 5 migration includes a trigger to ensure `cardio_exercise_id` belongs to the same `user_id`
 - the same trigger requires distance for indoor/outdoor walking and running, and clears distance for cycling and elliptical entries
 
+## Table: rest_days
+
+Purpose:
+
+Stores logged rest/recovery days so blank dates can be explicitly recorded as
+recovery days. One rest day per user per date.
+
+Fields:
+
+- `id uuid primary key default gen_random_uuid()`
+- `user_id uuid not null references auth.users(id) on delete cascade`
+- `rest_date date not null`
+- `notes text`
+- `created_at timestamptz not null default now()`
+- `updated_at timestamptz not null default now()`
+
+Recommended constraints:
+
+- `unique (user_id, rest_date)` so a date cannot be logged as resting twice
+- Rest Days must not share a date with strength `workout_sessions` or
+  `cardio_entries` for the same user
+
+Relationships:
+
+- one user has many rest days
+
+RLS expectation:
+
+- user can access only rows where `user_id = auth.uid()`
+
+Notes:
+
+- A Rest Day is a day-level marker, not a session.
+- If a Rest Day was logged by mistake, delete the Rest Day first, then record
+  the missed strength workout or cardio entry.
+- The Today page uses `profiles.last_seen_date` to backfill missed blank
+  calendar dates as Rest Days when the owner next opens the app.
+
 ## Migration Support Objects
 
 The Stage 2.5 migration adds:
@@ -228,6 +268,26 @@ The Stage 5 cardio migration adds:
 Live status: applied in the selected Supabase project on 2026-06-27 using
 `supabase/migrations/202606270001_apply_cardio_schema_and_seed_exercises.sql`.
 The seed creates default cardio exercises for existing auth users.
+
+The Stage 6 rest day migration
+(`supabase/migrations/202607020001_create_rest_days_schema_and_rls.sql`) adds:
+
+- `profiles.last_seen_date` as the last local calendar date used for Rest Day
+  backfill
+- `rest_days` with a unique `(user_id, rest_date)` index
+- trigger guards that prevent Rest Days from sharing a date with strength
+  workout sessions or cardio entries for the same user
+- Row Level Security with per-operation owner-scoped policies
+- the shared `set_updated_at()` trigger
+- authenticated CRUD grants only, anon access revoked, and `truncate`,
+  `references`, and `trigger` revoked from `authenticated`
+
+Live status: applied in the selected Supabase project on 2026-07-02 using
+`supabase/migrations/202607020001_create_rest_days_schema_and_rls.sql`.
+Remote verification confirmed `rest_days` exists with Row Level Security
+enabled, four owner-scoped policies, authenticated CRUD grants only, no `anon`
+table privileges, and trigger guards for strength/cardio/Rest Day date
+conflicts.
 
 ## Workout History Storage
 

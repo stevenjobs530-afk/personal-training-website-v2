@@ -97,3 +97,17 @@ This file records important project decisions. Add new entries when the project 
 - **Reason:** Cardio activities such as Indoor Walking belong in the separate cardio model. If a matching row exists in the strength `exercises` table, it creates duplicate Progress and Exercises entries and confuses the training categories.
 - **Alternatives considered:** manually delete the live row only, add an exercise type column to `exercises`, or merge cardio into strength sets.
 - **Consequences:** Strength exercise creation/update now rejects cardio-only names, strength selectors and progress lists filter them out, and the Exercises page exposes a guarded cleanup action for unreferenced duplicate strength rows. The cardio model, auth flow, RLS rules, and database schema remain unchanged.
+
+## 2026-07-02
+
+### Decision: Treat Rest Days as blank-day markers, not training sessions
+
+- **Reason:** The owner wants a fast Version 1 way to mark missed or recovered days while keeping workout and cardio records unambiguous for future progress review.
+- **Alternatives considered:** store rest as a special workout session, allow rest to coexist with training on the same date, or infer rest days only from gaps without storing rows.
+- **Consequences:** Stage 6 adds `rest_days` plus `profiles.last_seen_date`. A Rest Day cannot share a date with strength workout sessions or cardio entries for the same user. The Today page can backfill missed blank dates as Rest Days, and corrections happen by deleting the Rest Day before recording the missed workout or cardio entry.
+
+### Decision: Treat the Workouts tab as a recent activity surface
+
+- **Reason:** Version 1 users need one fast place to review what happened on recent dates. Cardio-only dates are training days and should not look blank just because they are stored outside strength `workout_sessions`.
+- **Alternatives considered:** keep `/workouts` strength-only and rely on `/cardio` plus `/history` for cardio visibility.
+- **Consequences:** `/workouts` remains the strength-entry route family, but the top-level `/workouts` list includes strength sessions, cardio entries, and Rest Days as recent day-level activity. Cardio records continue to live in `cardio_entries`; no schema merge or new table is introduced.

@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { hasSupabaseEnv } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/server";
 import { isReservedCardioExerciseName } from "@/lib/training/cardio-reserved";
+import { getDayActivityStatus } from "@/lib/training/rest-days";
 
 export type WorkoutActionState = {
   status: "idle" | "success" | "error";
@@ -76,6 +77,10 @@ function isDateInputValue(value: string) {
 }
 
 function getSessionErrorMessage(error: DatabaseError) {
+  if (error.message?.toLowerCase().includes("rest day")) {
+    return "Remove the Rest Day before starting a workout for this date.";
+  }
+
   if (error.code === "23514") {
     return "Enter a valid workout date.";
   }
@@ -160,6 +165,19 @@ export async function createWorkoutSession(
     return context.state;
   }
 
+  const dayStatus = await getDayActivityStatus({
+    dateKey: workoutDate,
+    supabase: context.supabase,
+    userId: context.userId,
+  });
+
+  if (!dayStatus.setupError && dayStatus.restDay) {
+    return {
+      status: "error",
+      message: "Remove the Rest Day before starting a workout for this date.",
+    };
+  }
+
   const notes = getOptionalText(formData, "notes");
   const { data, error } = await context.supabase
     .from("workout_sessions")
@@ -179,6 +197,7 @@ export async function createWorkoutSession(
   }
 
   revalidatePath("/workouts");
+  revalidatePath("/dashboard");
   revalidatePath("/history");
   redirect(`/workouts/${data.id}`);
 }

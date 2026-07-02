@@ -368,6 +368,45 @@ This file tracks what has been done, what failed, and what future Codex sessions
   - Kept historical workout/cardio data linked through existing exercise ids; no Supabase schema, RLS, auth flow, public signup behavior, or history table was changed.
   - Verified `npm run lint` and `npm run build` pass.
   - Did not push to GitHub; owner approval is required before syncing.
+- 2026-07-02: Implemented the local Stage 6 Rest Day feature:
+  - Added `rest_days` as a user-owned Supabase table in a local migration, with RLS, owner-scoped CRUD policies, authenticated-only grants, and a unique `(user_id, rest_date)` index.
+  - Added `profiles.last_seen_date` as the Today-page visit anchor for automatic missed-day backfill.
+  - Added database trigger guards so Rest Days cannot share a date with strength workout sessions or cardio entries, and training cannot be inserted on an existing Rest Day.
+  - Added shared local date and Rest Day helpers for Today status, conflict checks, blank-day backfill, Rest Day creation, and Rest Day deletion.
+  - Changed `/dashboard` into the Today surface with a `Today is Rest Day` action, today status pills, automatic backfill on visit, and links to strength, cardio, and correction flows.
+  - Kept `/workouts/new` as a selected-date correction path for logging a chosen date as Rest Day.
+  - Kept `/workouts` as the correction surface for removing mistaken Rest Days.
+  - Updated workout and cardio creation actions to block new training entries on an existing Rest Day with a clear correction message.
+  - Updated `ARCHITECTURE.md`, `DATABASE_SCHEMA.md`, `DECISIONS.md`, and `ROADMAP.md` for the Stage 6 data and product boundary.
+  - Did not apply the migration to the remote Supabase project, push to GitHub, create a pull request, or deploy to Vercel.
+  - Remaining limitation: authenticated end-to-end Rest Day QA requires the local migration to be applied to a safe Supabase database and an owner-controlled login session.
+- 2026-07-02: Applied and verified the Stage 6 Rest Day schema in the selected Supabase project:
+  - Confirmed the connected project is `odapadlcrujnnwwampuq` in `eu-west-1`, named `stevenjobs530-afk's Project`.
+  - Before applying SQL, reviewed the target changes: add `profiles.last_seen_date`, create `rest_days`, add owner-scoped RLS policies, add authenticated-only CRUD grants, and add trigger guards for same-date strength/cardio/Rest Day conflicts.
+  - Applied `supabase/migrations/202607020001_create_rest_days_schema_and_rls.sql` through the Supabase connector with no destructive statements, no old-data deletion, and no service role key exposure.
+  - Verified `rest_days` exists with Row Level Security enabled, zero rows initially, four owner-scoped policies, authenticated CRUD privileges only, no `anon` table privileges, and the expected validation/update triggers.
+  - Verified a database-level conflict check blocks inserting a Rest Day on a date that already has a strength workout session, then confirmed the check left `rest_days` with zero rows.
+  - Inspected the connected Vercel project metadata for `personal-training-website-v2`; no Vercel environment values were printed or changed, and no deployment, GitHub push, branch, pull request, or production change was made.
+  - Remaining limitation: full logged-in Rest Day button/backfill/remove QA still requires the owner-controlled authenticated browser session because Codex should not know or type the account password.
+- 2026-07-02: Audited and fixed day-level activity consistency after a cardio-only date mismatch:
+  - Verified in Supabase that July 2, 2026 has one `cardio_entries` row for Indoor Walking, zero `workout_sessions`, and zero `rest_days`; no data was changed or deleted.
+  - Found the root UI mismatch: `/workouts` only read strength `workout_sessions` plus `rest_days`, while `/cardio` read `cardio_entries` and `/history` already counted `cardio_entries` in active days.
+  - Updated `/workouts` into a recent activity surface that groups strength sessions, cardio entries, and Rest Days by date, so cardio-only days such as July 2 appear as training activity.
+  - Updated cardio creation to revalidate `/workouts` after saving a cardio entry, matching the existing `/cardio`, `/dashboard`, and `/history` refresh behavior.
+  - Reused the shared local date helper for both new strength and new cardio default date inputs so Today, strength, and cardio start from the same local date key.
+  - Verified `npm run lint`, `npm run build`, signed-out protected-route redirects, mobile login rendering, desktop login rendering, and a read-only Supabase July 2 activity union all pass.
+  - Attempted safe Chrome verification of logged-in `/workouts`, but the local Chrome profile also redirected to `/login?next=%2Fworkouts`; Codex did not read cookies, localStorage, tokens, or enter the owner password.
+  - Kept Supabase schema, RLS, auth flow, public signup behavior, Vercel configuration, GitHub, and deployments unchanged.
+  - Remaining limitation: owner-session visual QA still needs to confirm July 2 appears in `/workouts` and `/history` with the controlled account.
+- 2026-07-02: Completed owner-session read-only QA for the day-level activity fix:
+  - After the owner signed in locally, verified `/cardio` still shows the July 2, 2026 Indoor Walking entry with 43m, 2.02 mi, and 450 kcal.
+  - Verified `/workouts` now shows July 2 as recent activity: `Indoor Walking`, `Cardio - 43m - 2.02 mi - 450 kcal`.
+  - Verified `/history` shows `12 strength`, `3 cardio`, and `8 active days`; after opening 2026 and July, July 2 appears as a `CARDIO` day with Indoor Walking and the same 43m, 2.02 mi, 450 kcal details.
+  - Verified `/dashboard` shows July 2 as `Cardio recorded`, disables `Today is Rest Day`, and shows the conflict message that today already has training recorded.
+  - Verified `/workouts` in Phone preview still shows July 2 cardio activity, July 1 Rest Day, and strength workout rows, with no browser warning/error logs.
+  - Did not click the Rest Day removal button because the project instruction says not to delete Supabase data; verified the Rest Day row and remove control are visible instead.
+  - Reconfirmed through read-only Supabase SQL that July 2 has zero strength entries, one cardio entry, and zero Rest Day entries.
+  - No Supabase data/schema, Vercel configuration, deployment, GitHub branch, pull request, or push was changed.
 
 ## Failed Or Abandoned Attempts
 
@@ -390,7 +429,9 @@ This file tracks what has been done, what failed, and what future Codex sessions
 - UX Rework 5 concludes the current structured entry flow is ready to support a future progress stage, but owner logged-in workflow QA still needs to prove live writes, refresh persistence, and recent-history grouping with real saved sets.
 - Production login, logout, and workout logging still need owner manual QA because Codex should not know or type the controlled account password.
 - Stage 5 cardio schema and default exercise seed data are applied in the selected Supabase project.
+- Stage 6 Rest Day schema, owner RLS policies, authenticated-only grants, and date-conflict triggers are applied in the selected Supabase project.
 - Authenticated cardio exercise creation, cardio entry creation, refresh persistence, and `/cardio` recent history still need owner manual QA with real owner data.
+- Authenticated Rest Day logging, automatic blank-day backfill, removal, and training-after-removal correction flows still need owner manual QA with real owner data.
 - Full logged-in visual QA of the 2026-06-27 top navigation, Preview width control, and protected `/history` overview still needs owner confirmation in an authenticated browser session.
 - Full logged-in visual QA of the 2026-06-27 History folds, Saved Exercises categories, and Progress trend charts still needs owner confirmation in an authenticated browser session.
 
@@ -405,6 +446,7 @@ This file tracks what has been done, what failed, and what future Codex sessions
 - Test owner-controlled cardio logging on localhost or production now that the Stage 5 cardio setup is applied in Supabase.
 - Review the synced 2026-06-27 preview shell in an owner logged-in browser after GitHub/Vercel update.
 - Review the synced 2026-06-27 History, Exercises, and Progress polish in an owner logged-in browser after GitHub/Vercel update.
+- Test real Rest Day flows on localhost or production using the controlled owner account now that the Stage 6 Rest Day setup is applied in Supabase.
 
 ## Next Planned Tasks
 

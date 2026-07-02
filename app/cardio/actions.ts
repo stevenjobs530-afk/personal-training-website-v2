@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { hasSupabaseEnv } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/server";
+import { getDayActivityStatus } from "@/lib/training/rest-days";
 import {
   cardioCategories,
   distanceUnits,
@@ -111,6 +112,10 @@ function parseOptionalPositiveNumber(value: string) {
 }
 
 function getCardioErrorMessage(error: DatabaseError) {
+  if (error.message?.toLowerCase().includes("rest day")) {
+    return "Remove the Rest Day before recording cardio for this date.";
+  }
+
   if (
     error.code === "23505" ||
     error.message?.includes("cardio_exercises_user_name_unique")
@@ -197,6 +202,19 @@ export async function createCardioEntry(
     return context.state;
   }
 
+  const dayStatus = await getDayActivityStatus({
+    dateKey: cardioDate,
+    supabase: context.supabase,
+    userId: context.userId,
+  });
+
+  if (!dayStatus.setupError && dayStatus.restDay) {
+    return {
+      status: "error",
+      message: "Remove the Rest Day before recording cardio for this date.",
+    };
+  }
+
   let cardioExerciseId = existingExerciseId;
 
   if (newExerciseName) {
@@ -266,7 +284,9 @@ export async function createCardioEntry(
   }
 
   revalidatePath("/cardio");
+  revalidatePath("/dashboard");
   revalidatePath("/history");
+  revalidatePath("/workouts");
   revalidatePath("/cardio/new");
   redirect("/cardio");
 }
