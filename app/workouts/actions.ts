@@ -100,6 +100,14 @@ function getSetErrorMessage(error: DatabaseError) {
   return "The set could not be saved. Try again.";
 }
 
+function getSetUpdateErrorMessage(error: DatabaseError) {
+  if (error.code === "23503" || error.code === "23514") {
+    return "Check the set kind, weight, and reps.";
+  }
+
+  return "The set could not be saved. Try again.";
+}
+
 function getExerciseErrorMessage(error: DatabaseError) {
   if (error.code === "23505" || error.message?.includes("exercises_user_name_unique")) {
     return "An exercise with this name already exists.";
@@ -363,6 +371,90 @@ export async function createWorkoutExercise(
     status: "success",
     message: "Exercise added.",
     createdExerciseId: data.id,
+  };
+}
+
+export async function updateWorkoutSet(
+  _previousState: WorkoutActionState,
+  formData: FormData,
+): Promise<WorkoutActionState> {
+  const sessionId = getTrimmedValue(formData, "session_id");
+  const setId = getTrimmedValue(formData, "set_id");
+  const setKind = getTrimmedValue(formData, "set_kind");
+  const weight = parseNonNegativeNumber(getTrimmedValue(formData, "weight"));
+  const reps = parseNonNegativeInteger(getTrimmedValue(formData, "reps"));
+
+  if (!sessionId || !setId) {
+    return {
+      status: "error",
+      message: "The set could not be found.",
+    };
+  }
+
+  if (!isSetKind(setKind)) {
+    return {
+      status: "error",
+      message: "Choose warmup or working.",
+    };
+  }
+
+  if (weight === null) {
+    return {
+      status: "error",
+      message: "Weight must be 0 or higher.",
+    };
+  }
+
+  if (reps === null) {
+    return {
+      status: "error",
+      message: "Reps must be 0 or higher.",
+    };
+  }
+
+  const context = await getActionContext();
+
+  if (!context.ok) {
+    return context.state;
+  }
+
+  const notes = getOptionalText(formData, "notes");
+  const { data, error } = await context.supabase
+    .from("workout_sets")
+    .update({
+      set_kind: setKind,
+      weight,
+      reps,
+      notes,
+    })
+    .eq("id", setId)
+    .eq("session_id", sessionId)
+    .eq("user_id", context.userId)
+    .select("id")
+    .maybeSingle();
+
+  if (error) {
+    return {
+      status: "error",
+      message: getSetUpdateErrorMessage(error),
+    };
+  }
+
+  if (!data) {
+    return {
+      status: "error",
+      message: "The set could not be found.",
+    };
+  }
+
+  revalidatePath("/workouts");
+  revalidatePath("/history");
+  revalidatePath("/progress");
+  revalidatePath(`/workouts/${sessionId}`);
+
+  return {
+    status: "success",
+    message: "Set saved.",
   };
 }
 

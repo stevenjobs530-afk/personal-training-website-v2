@@ -5,6 +5,7 @@ import {
   createWorkoutExercise,
   createWorkoutSet,
   deleteWorkoutSet,
+  updateWorkoutSet,
   type WorkoutActionState,
 } from "../actions";
 
@@ -589,6 +590,142 @@ function DeleteSetForm({
   );
 }
 
+function EditSetForm({
+  sessionId,
+  set,
+}: {
+  sessionId: string;
+  set: SessionSet;
+}) {
+  const [state, formAction, pending] = useActionState(
+    updateWorkoutSet,
+    initialActionState,
+  );
+  const [selectedSetKind, setSelectedSetKind] = useState(set.setKind);
+  const affectsProgress =
+    set.setKind === "working" && selectedSetKind === "warmup";
+  const fieldIdPrefix = `edit-set-${set.id}`;
+
+  function handleSetKindChange(value: string) {
+    if (value === "warmup" || value === "working") {
+      setSelectedSetKind(value);
+    }
+  }
+
+  return (
+    <form action={formAction} className="min-w-0 space-y-3">
+      <input name="session_id" type="hidden" value={sessionId} />
+      <input name="set_id" type="hidden" value={set.id} />
+
+      <div className="grid gap-3 sm:grid-cols-[minmax(7rem,0.8fr)_minmax(7rem,1fr)_minmax(6rem,0.9fr)]">
+        <div className="space-y-2">
+          <label
+            className="text-sm font-semibold text-[var(--foreground)]"
+            htmlFor={`${fieldIdPrefix}-kind`}
+          >
+            Set {set.setNumber}
+          </label>
+          <select
+            className="min-h-11 w-full rounded-md border border-[var(--border)] bg-white px-3 text-sm font-bold uppercase text-[var(--foreground)] outline-none focus:border-[var(--accent)] disabled:bg-[var(--surface-strong)]"
+            disabled={pending}
+            id={`${fieldIdPrefix}-kind`}
+            name="set_kind"
+            onChange={(event) => handleSetKindChange(event.target.value)}
+            value={selectedSetKind}
+          >
+            <option value="warmup">Warmup</option>
+            <option value="working">Working</option>
+          </select>
+        </div>
+
+        <div className="space-y-2">
+          <label
+            className="text-sm font-semibold text-[var(--foreground)]"
+            htmlFor={`${fieldIdPrefix}-weight`}
+          >
+            Weight
+          </label>
+          <NumberStepper
+            key={`${set.id}-weight-${set.weight}`}
+            buttonStep={weightStep}
+            defaultValue={set.weight}
+            decrementLabel={`Decrease set ${set.setNumber} weight by 2.5kg`}
+            disabled={pending}
+            id={`${fieldIdPrefix}-weight`}
+            incrementLabel={`Increase set ${set.setNumber} weight by 2.5kg`}
+            inputMode="decimal"
+            inputStep="any"
+            name="weight"
+            placeholder="0"
+            valueKind="decimal"
+          />
+        </div>
+
+        <div className="space-y-2">
+          <label
+            className="text-sm font-semibold text-[var(--foreground)]"
+            htmlFor={`${fieldIdPrefix}-reps`}
+          >
+            Reps
+          </label>
+          <NumberStepper
+            key={`${set.id}-reps-${set.reps}`}
+            buttonStep={repsStep}
+            defaultValue={String(set.reps)}
+            decrementLabel={`Decrease set ${set.setNumber} reps by 1`}
+            disabled={pending}
+            id={`${fieldIdPrefix}-reps`}
+            incrementLabel={`Increase set ${set.setNumber} reps by 1`}
+            inputMode="numeric"
+            name="reps"
+            placeholder="10"
+            valueKind="integer"
+          />
+        </div>
+      </div>
+
+      {affectsProgress ? (
+        <p className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-800">
+          This will affect Progress stats.
+        </p>
+      ) : null}
+
+      <details
+        className="rounded-md border border-[var(--border)] bg-white"
+        open={Boolean(set.notes)}
+      >
+        <summary className="flex min-h-11 cursor-pointer items-center px-3 text-sm font-semibold text-[var(--foreground)]">
+          Optional set notes
+        </summary>
+        <div className="border-t border-[var(--border)] p-3">
+          <label className="sr-only" htmlFor={`${fieldIdPrefix}-notes`}>
+            Optional set notes
+          </label>
+          <textarea
+            className="min-h-16 w-full resize-y rounded-md border border-[var(--border)] bg-white px-3 py-3 text-base outline-none focus:border-[var(--accent)] disabled:bg-[var(--surface-strong)]"
+            defaultValue={set.notes ?? ""}
+            disabled={pending}
+            id={`${fieldIdPrefix}-notes`}
+            name="notes"
+            placeholder="Anything about this set"
+          />
+        </div>
+      </details>
+
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+        <button
+          className="min-h-11 rounded-md bg-[var(--accent)] px-4 text-sm font-bold text-white disabled:cursor-not-allowed disabled:bg-[var(--muted)]"
+          disabled={pending}
+          type="submit"
+        >
+          {pending ? "Saving..." : "Save"}
+        </button>
+        <ActionMessage state={state} />
+      </div>
+    </form>
+  );
+}
+
 function SetList({
   sessionId,
   sets,
@@ -625,23 +762,13 @@ function SetList({
             <ul className="mt-3 space-y-3">
               {group.sets.map((set) => (
                 <li
-                  className="flex flex-col gap-3 rounded-md bg-[var(--surface-strong)] p-3 sm:flex-row sm:items-start sm:justify-between"
+                  className="grid gap-3 rounded-md bg-[var(--surface-strong)] p-3 lg:grid-cols-[minmax(0,1fr)_auto]"
                   key={set.id}
                 >
-                  <div className="space-y-2">
-                    <span className="inline-flex rounded-md bg-[var(--surface)] px-2 py-1 text-xs font-bold uppercase text-[var(--muted)]">
-                      {set.setKind}
-                    </span>
-                    <p className="text-lg font-bold text-[var(--foreground)]">
-                      Set {set.setNumber}: {set.weight} x {set.reps}
-                    </p>
-                    {set.notes ? (
-                      <p className="text-sm leading-6 text-[var(--muted)]">
-                        {set.notes}
-                      </p>
-                    ) : null}
+                  <EditSetForm sessionId={sessionId} set={set} />
+                  <div className="lg:pt-7">
+                    <DeleteSetForm sessionId={sessionId} set={set} />
                   </div>
-                  <DeleteSetForm sessionId={sessionId} set={set} />
                 </li>
               ))}
             </ul>

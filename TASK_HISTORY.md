@@ -416,6 +416,15 @@ This file tracks what has been done, what failed, and what future Codex sessions
   - Verified `npm run lint`, `npm run build`, and `git diff --check` pass.
   - Verified in the logged-in local browser that July 1, 2026 shows `R`, July 2, 2026 shows `✓`, July 3, 2026 is blank, the old `Less`/`More` legend is gone, and Phone preview keeps the calendar visible with no browser error logs.
   - Did not change Supabase schema, RLS, auth flow, public signup behavior, Vercel configuration, GitHub branch, pull request, push, or deployment.
+- 2026-07-06: Added local editable saved workout sets:
+  - Added a `updateWorkoutSet` Server Action that rechecks the authenticated Supabase user, validates `set_kind`, non-negative weight, and non-negative reps, and updates only `workout_sets` rows matching the set id, session id, and current `user_id`.
+  - Updated Recorded sets on `/workouts/[sessionId]` so each saved set has a compact mini form for set kind, weight, reps, and optional set notes, with a per-set `Save` button and the existing Delete action preserved.
+  - Added the warning `This will affect Progress stats.` when an originally working set is changed to warmup before saving.
+  - Kept the existing Progress calculation rule unchanged: strength progress continues to read only `working` sets from `workout_sets.set_kind`.
+  - Revalidated `/workouts`, `/history`, `/progress`, and the current workout session page after set edits.
+  - Did not change Supabase schema, RLS policies, auth flow, route protection, navigation, GitHub, Vercel, or live database data.
+  - Verified `npm run lint` and `npm run build` pass.
+  - Remaining limitation: authenticated browser QA still needs the owner-controlled session to edit a real saved set, refresh the workout page, and confirm Progress updates after changing working/warmup state.
 
 ## Failed Or Abandoned Attempts
 
