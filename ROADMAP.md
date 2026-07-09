@@ -1,6 +1,6 @@
 # ROADMAP.md
 
-Last updated: 2026-06-23
+Last updated: 2026-07-09
 
 ## Product Principle
 
@@ -22,6 +22,7 @@ Version 1 should include:
 - record workout sets
 - mark each set as `warmup` or `working`
 - record weight and reps
+- use a lightweight local rest timer between saved strength sets
 - add simple notes where useful
 - view recent workout history
 - view a combined strength/cardio training history overview
@@ -40,6 +41,7 @@ UX Rework 1-5 confirms the Version 1 workout entry flow is now structured enough
 - `/workouts/new` creates a dated workout session and sends the owner to the session detail page for structured set entry.
 - `/workouts/[sessionId]` starts with exercise selection, supports inline exercise creation, and records warmup/working sets under the selected exercise.
 - Each saved set keeps `session_id`, `exercise_id`, `set_kind`, `weight`, `reps`, `set_number`, and optional notes.
+- `/workouts/[sessionId]` includes a browser-local rest timer that starts after a new set is saved and remembers the preferred rest duration on that device only.
 - `/workouts` recent history reads sessions, sets, and exercises, then groups sets under each exercise name.
 - Session notes and set notes remain optional context fields, not the primary place for structured workout data.
 

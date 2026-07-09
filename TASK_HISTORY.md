@@ -425,6 +425,15 @@ This file tracks what has been done, what failed, and what future Codex sessions
   - Did not change Supabase schema, RLS policies, auth flow, route protection, navigation, GitHub, Vercel, or live database data.
   - Verified `npm run lint` and `npm run build` pass.
   - Remaining limitation: authenticated browser QA still needs the owner-controlled session to edit a real saved set, refresh the workout page, and confirm Progress updates after changing working/warmup state.
+- 2026-07-09: Added local rest timer preview and compact Recorded sets rows:
+  - Added a browser-local rest timer to `/workouts/[sessionId]` that starts after a new set is saved, remembers the preferred rest duration in localStorage, and uses only visible countdown state with no sound, vibration, notification, or persistent workout data.
+  - Changed the add-set submit copy to make saving the set and starting rest one combined gym-flow action.
+  - Changed Recorded sets so each saved set is a compact summary row by default, with set number, warmup/working kind, weight, reps, notes marker, Edit, and Delete.
+  - Kept the full saved-set edit form behind the per-row Edit action, with Cancel, Save, the existing delete confirmation, and the Progress warning when changing an originally working set to warmup.
+  - Recorded the product decision that rest timer preferences remain local UI state rather than Supabase data.
+  - Did not change Supabase schema, RLS policies, auth flow, route protection, live database data, Vercel deployment, GitHub branch, pull request, push, or `.claude/`.
+  - Verified `npm run lint`, `npm run build`, desktop rendered preview, 390px mobile rendered preview, no page-level mobile horizontal overflow, no browser console warnings/errors, manual rest timer countdown, rest duration persistence after refresh, compact Recorded sets rows, and one-row Edit expansion.
+  - Automatic countdown after saving a new set still needs owner confirmation during local preview because Codex intentionally did not create or modify live Supabase workout data.
 
 ## Failed Or Abandoned Attempts
 

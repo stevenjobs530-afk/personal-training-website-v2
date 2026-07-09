@@ -117,3 +117,11 @@ This file records important project decisions. Add new entries when the project 
 - **Reason:** The owner wants the calendar to answer whether a date was training, rest, or blank, without implying workout quality or intensity from entry count.
 - **Alternatives considered:** keep the GitHub-style Less/More intensity heatmap, or create separate strength/cardio/rest stacked markers.
 - **Consequences:** `/history` still reads existing strength, cardio, and Rest Day rows, but the compact calendar shows a check mark for any training day, `R` for Rest Day, and an empty square for no entry. Training remains the visible priority if inconsistent same-day data is ever encountered.
+
+## 2026-07-09
+
+### Decision: Keep the workout rest timer as local UI state
+
+- **Reason:** The rest timer supports in-gym pacing between strength sets without becoming workout history or cross-device training data.
+- **Alternatives considered:** store a default rest duration in Supabase, store each rest interval as workout data, or keep no saved preference.
+- **Consequences:** `/workouts/[sessionId]` can remember the preferred rest duration in browser localStorage and start a lightweight countdown after a new set is saved. The timer does not change Supabase schema, RLS policies, authentication, saved workout rows, Progress calculations, or cross-device sync behavior.

@@ -1,6 +1,14 @@
 "use client";
 
-import { useActionState, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useActionState,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
 import {
   createWorkoutExercise,
   createWorkoutSet,
@@ -51,6 +59,12 @@ const initialActionState: WorkoutActionState = {
 };
 const weightStep = 2.5;
 const repsStep = 1;
+const restTimerStorageKey = "workout-rest-duration-seconds";
+const restTimerStorageEvent = "workout-rest-duration-change";
+const defaultRestDurationSeconds = 120;
+const minRestDurationSeconds = 30;
+const maxRestDurationSeconds = 600;
+const restDurationStepSeconds = 30;
 
 function ActionMessage({ state }: { state: WorkoutActionState }) {
   if (!state.message) {
@@ -66,6 +80,159 @@ function ActionMessage({ state }: { state: WorkoutActionState }) {
     <p className={`rounded-md border px-3 py-2 text-sm font-semibold ${toneClass}`}>
       {state.message}
     </p>
+  );
+}
+
+function RestTimer({ startSignal }: { startSignal: number }) {
+  const durationSeconds = useSyncExternalStore(
+    subscribeToRestDuration,
+    getRestDurationSnapshot,
+    getRestDurationServerSnapshot,
+  );
+  const [activeTotalSeconds, setActiveTotalSeconds] = useState(defaultRestDurationSeconds);
+  const [remainingSeconds, setRemainingSeconds] = useState<number | null>(null);
+  const [endsAt, setEndsAt] = useState<number | null>(null);
+  const [completed, setCompleted] = useState(false);
+  const handledStartSignalRef = useRef(0);
+  const isRunning = endsAt !== null;
+  const visibleRemaining = remainingSeconds ?? durationSeconds;
+  const progressPercent =
+    remainingSeconds === null
+      ? 0
+      : Math.min(
+          100,
+          Math.max(0, ((activeTotalSeconds - remainingSeconds) / activeTotalSeconds) * 100),
+        );
+
+  const startTimer = useCallback((duration = durationSeconds) => {
+    const nextDuration = clampRestDuration(duration);
+
+    setActiveTotalSeconds(nextDuration);
+    setRemainingSeconds(nextDuration);
+    setCompleted(false);
+    setEndsAt(Date.now() + nextDuration * 1000);
+  }, [durationSeconds]);
+
+  useEffect(() => {
+    if (startSignal > 0 && handledStartSignalRef.current !== startSignal) {
+      handledStartSignalRef.current = startSignal;
+      startTimer();
+    }
+  }, [startSignal, startTimer]);
+
+  useEffect(() => {
+    if (!endsAt) {
+      return;
+    }
+
+    const updateRemaining = () => {
+      const nextRemaining = Math.max(0, Math.ceil((endsAt - Date.now()) / 1000));
+      setRemainingSeconds(nextRemaining);
+
+      if (nextRemaining <= 0) {
+        setEndsAt(null);
+        setCompleted(true);
+      }
+    };
+    const intervalId = window.setInterval(updateRemaining, 250);
+
+    updateRemaining();
+
+    return () => window.clearInterval(intervalId);
+  }, [endsAt]);
+
+  function adjustDuration(deltaSeconds: number) {
+    const nextDuration = clampRestDuration(durationSeconds + deltaSeconds);
+    saveRestDuration(nextDuration);
+  }
+
+  function clearTimer() {
+    setEndsAt(null);
+    setRemainingSeconds(null);
+    setCompleted(false);
+  }
+
+  return (
+    <section className="space-y-3 rounded-md border border-[var(--border)] bg-white p-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="space-y-1">
+          <h3 className="text-base font-bold text-[var(--foreground)]">Rest timer</h3>
+          <p className="text-sm leading-6 text-[var(--muted)]">
+            {isRunning
+              ? "Counting down after the saved set."
+              : completed
+                ? "Rest complete. Ready for the next set."
+                : "Starts after you save a new set."}
+          </p>
+        </div>
+
+        <div className="grid min-w-36 grid-cols-[44px_1fr_44px] overflow-hidden rounded-md border border-[var(--border)] bg-[var(--surface)]">
+          <button
+            aria-label="Decrease rest time by 30 seconds"
+            className="min-h-11 border-r border-[var(--border)] text-base font-bold text-[var(--accent)] disabled:cursor-not-allowed disabled:text-[var(--muted)]"
+            disabled={durationSeconds <= minRestDurationSeconds}
+            onClick={() => adjustDuration(-restDurationStepSeconds)}
+            type="button"
+          >
+            -
+          </button>
+          <output className="flex min-h-11 items-center justify-center px-3 text-sm font-bold text-[var(--foreground)]">
+            {formatDuration(durationSeconds)}
+          </output>
+          <button
+            aria-label="Increase rest time by 30 seconds"
+            className="min-h-11 border-l border-[var(--border)] text-base font-bold text-[var(--accent)] disabled:cursor-not-allowed disabled:text-[var(--muted)]"
+            disabled={durationSeconds >= maxRestDurationSeconds}
+            onClick={() => adjustDuration(restDurationStepSeconds)}
+            type="button"
+          >
+            +
+          </button>
+        </div>
+      </div>
+
+      <div
+        aria-live="polite"
+        className={
+          completed
+            ? "rounded-md border border-emerald-200 bg-emerald-50 px-3 py-3"
+            : "rounded-md border border-[var(--border)] bg-[var(--surface)] px-3 py-3"
+        }
+      >
+        <div className="flex items-center justify-between gap-3">
+          <span className="text-sm font-semibold text-[var(--muted)]">
+            {isRunning ? "Next set in" : completed ? "Done" : "Ready"}
+          </span>
+          <span className="font-mono text-2xl font-bold text-[var(--foreground)]">
+            {formatDuration(visibleRemaining)}
+          </span>
+        </div>
+        <div className="mt-3 h-2 overflow-hidden rounded-full bg-[var(--border)]">
+          <div
+            className="h-full rounded-full bg-[var(--accent)] transition-[width]"
+            style={{ width: `${progressPercent}%` }}
+          />
+        </div>
+      </div>
+
+      <div className="flex flex-wrap gap-2">
+        <button
+          className="min-h-10 rounded-md border border-[var(--border)] bg-[var(--surface)] px-3 text-sm font-bold text-[var(--foreground)]"
+          onClick={() => startTimer()}
+          type="button"
+        >
+          {isRunning ? "Restart" : "Start rest"}
+        </button>
+        <button
+          className="min-h-10 rounded-md border border-[var(--border)] bg-white px-3 text-sm font-bold text-[var(--muted)] disabled:cursor-not-allowed disabled:text-[var(--border)]"
+          disabled={!isRunning && !completed && remainingSeconds === null}
+          onClick={clearTimer}
+          type="button"
+        >
+          Clear
+        </button>
+      </div>
+    </section>
   );
 }
 
@@ -122,6 +289,58 @@ function groupSetsByExercise(sets: SessionSet[]) {
     .toSorted((left, right) =>
       right.latestCreatedAt.localeCompare(left.latestCreatedAt),
     );
+}
+
+function clampRestDuration(value: number) {
+  if (!Number.isFinite(value)) {
+    return defaultRestDurationSeconds;
+  }
+
+  return Math.min(
+    maxRestDurationSeconds,
+    Math.max(minRestDurationSeconds, Math.round(value / restDurationStepSeconds) * restDurationStepSeconds),
+  );
+}
+
+function formatDuration(totalSeconds: number) {
+  const safeSeconds = Math.max(0, totalSeconds);
+  const minutes = Math.floor(safeSeconds / 60);
+  const seconds = safeSeconds % 60;
+
+  return `${minutes}:${String(seconds).padStart(2, "0")}`;
+}
+
+function getStoredRestDuration() {
+  if (typeof window === "undefined") {
+    return defaultRestDurationSeconds;
+  }
+
+  const storedValue = Number(window.localStorage.getItem(restTimerStorageKey));
+
+  return clampRestDuration(storedValue);
+}
+
+function getRestDurationSnapshot() {
+  return getStoredRestDuration();
+}
+
+function getRestDurationServerSnapshot() {
+  return defaultRestDurationSeconds;
+}
+
+function subscribeToRestDuration(callback: () => void) {
+  window.addEventListener("storage", callback);
+  window.addEventListener(restTimerStorageEvent, callback);
+
+  return () => {
+    window.removeEventListener("storage", callback);
+    window.removeEventListener(restTimerStorageEvent, callback);
+  };
+}
+
+function saveRestDuration(durationSeconds: number) {
+  window.localStorage.setItem(restTimerStorageKey, String(durationSeconds));
+  window.dispatchEvent(new Event(restTimerStorageEvent));
 }
 
 function formatStepperValue(value: number, valueKind: "decimal" | "integer") {
@@ -298,12 +517,14 @@ function PreviousBestHint({
 function AddSetForm({
   exerciseId,
   exerciseName,
+  onSetSaved,
   previousBestSet,
   sessionId,
   sets,
 }: {
   exerciseId: string;
   exerciseName: string;
+  onSetSaved: () => void;
   previousBestSet: PreviousBestSet | undefined;
   sessionId: string;
   sets: SessionSet[];
@@ -325,12 +546,15 @@ function AddSetForm({
   const defaultWeight = latestSet?.weight ?? "";
   const defaultReps = latestSet ? String(latestSet.reps) : "";
   const fieldResetKey = `${exerciseId}-${nextSetNumber}`;
+  const handledStateRef = useRef<WorkoutActionState | null>(null);
 
   useEffect(() => {
-    if (state.status === "success") {
+    if (state.status === "success" && handledStateRef.current !== state) {
+      handledStateRef.current = state;
       formRef.current?.reset();
+      onSetSaved();
     }
-  }, [state]);
+  }, [onSetSaved, state]);
 
   return (
     <form
@@ -465,7 +689,7 @@ function AddSetForm({
         disabled={pending}
         type="submit"
       >
-        {pending ? "Adding..." : nextSetNumber > 1 ? "Add another set" : "Add set"}
+        {pending ? "Saving..." : "Save set + start rest"}
       </button>
     </form>
   );
@@ -473,10 +697,11 @@ function AddSetForm({
 
 function WorkoutSetEntry({
   exercises,
+  onSetSaved,
   previousBestByExerciseId,
   sessionId,
   sets,
-}: WorkoutSetManagerProps) {
+}: WorkoutSetManagerProps & { onSetSaved: () => void }) {
   const [selectedExerciseId, setSelectedExerciseId] = useState(
     exercises[0]?.id ?? "",
   );
@@ -546,6 +771,7 @@ function WorkoutSetEntry({
       <AddSetForm
         exerciseId={activeExerciseId}
         exerciseName={activeExerciseName}
+        onSetSaved={onSetSaved}
         previousBestSet={previousBestByExerciseId[activeExerciseId]}
         sessionId={sessionId}
         sets={sets}
@@ -590,10 +816,22 @@ function DeleteSetForm({
   );
 }
 
+function getSetKindLabel(setKind: SessionSet["setKind"]) {
+  return setKind === "warmup" ? "Warmup" : "Working";
+}
+
+function formatSetSummary(set: SessionSet) {
+  return `${set.weight} kg x ${set.reps}`;
+}
+
 function EditSetForm({
+  onCancel,
+  onSaved,
   sessionId,
   set,
 }: {
+  onCancel: () => void;
+  onSaved: () => void;
   sessionId: string;
   set: SessionSet;
 }) {
@@ -605,6 +843,14 @@ function EditSetForm({
   const affectsProgress =
     set.setKind === "working" && selectedSetKind === "warmup";
   const fieldIdPrefix = `edit-set-${set.id}`;
+  const handledStateRef = useRef<WorkoutActionState | null>(null);
+
+  useEffect(() => {
+    if (state.status === "success" && handledStateRef.current !== state) {
+      handledStateRef.current = state;
+      onSaved();
+    }
+  }, [onSaved, state]);
 
   function handleSetKindChange(value: string) {
     if (value === "warmup" || value === "working") {
@@ -720,9 +966,80 @@ function EditSetForm({
         >
           {pending ? "Saving..." : "Save"}
         </button>
+        <button
+          className="min-h-11 rounded-md border border-[var(--border)] bg-white px-4 text-sm font-bold text-[var(--muted)] disabled:cursor-not-allowed disabled:text-[var(--border)]"
+          disabled={pending}
+          onClick={onCancel}
+          type="button"
+        >
+          Cancel
+        </button>
         <ActionMessage state={state} />
       </div>
     </form>
+  );
+}
+
+function SetListItem({
+  sessionId,
+  set,
+}: {
+  sessionId: string;
+  set: SessionSet;
+}) {
+  const [isEditing, setIsEditing] = useState(false);
+
+  if (isEditing) {
+    return (
+      <li className="rounded-md border border-[var(--border)] bg-[var(--surface-strong)] p-3">
+        <EditSetForm
+          onCancel={() => setIsEditing(false)}
+          onSaved={() => setIsEditing(false)}
+          sessionId={sessionId}
+          set={set}
+        />
+      </li>
+    );
+  }
+
+  return (
+    <li className="grid gap-3 rounded-md border border-[var(--border)] bg-white p-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
+      <div className="min-w-0 space-y-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="rounded-md bg-[var(--surface-strong)] px-2 py-1 text-xs font-bold uppercase text-[var(--muted)]">
+            Set {set.setNumber}
+          </span>
+          <span
+            className={
+              set.setKind === "working"
+                ? "rounded-md bg-[var(--accent-soft)] px-2 py-1 text-xs font-bold uppercase text-[var(--accent-strong)]"
+                : "rounded-md bg-white px-2 py-1 text-xs font-bold uppercase text-[var(--muted)] ring-1 ring-[var(--border)]"
+            }
+          >
+            {getSetKindLabel(set.setKind)}
+          </span>
+          {set.notes ? (
+            <span className="rounded-md bg-[var(--surface)] px-2 py-1 text-xs font-bold uppercase text-[var(--muted)] ring-1 ring-[var(--border)]">
+              Notes
+            </span>
+          ) : null}
+        </div>
+        <p className="truncate text-base font-bold text-[var(--foreground)]">
+          {formatSetSummary(set)}
+        </p>
+      </div>
+
+      <div className="flex flex-wrap gap-2 sm:justify-end">
+        <button
+          className="min-h-10 rounded-md border border-[var(--accent)] bg-white px-3 text-sm font-bold text-[var(--accent)]"
+          onClick={() => setIsEditing(true)}
+          type="button"
+        >
+          Edit
+        </button>
+        <DeleteSetForm sessionId={sessionId} set={set} />
+      </div>
+    </li>
   );
 }
 
@@ -752,24 +1069,21 @@ function SetList({
         >
           <details>
             <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3">
-              <h3 className="text-base font-bold text-[var(--foreground)]">
-                {group.exerciseName}
-              </h3>
-              <span className="shrink-0 text-sm font-semibold text-[var(--muted)]">
+              <div className="min-w-0">
+                <h3 className="truncate text-base font-bold text-[var(--foreground)]">
+                  {group.exerciseName}
+                </h3>
+                <p className="mt-1 text-sm font-semibold text-[var(--muted)]">
+                  Latest: {formatSetSummary(group.sets[group.sets.length - 1])}
+                </p>
+              </div>
+              <span className="shrink-0 rounded-md bg-white px-2 py-1 text-sm font-semibold text-[var(--muted)] ring-1 ring-[var(--border)]">
                 {group.sets.length} {group.sets.length === 1 ? "set" : "sets"}
               </span>
             </summary>
             <ul className="mt-3 space-y-3">
               {group.sets.map((set) => (
-                <li
-                  className="grid gap-3 rounded-md bg-[var(--surface-strong)] p-3 lg:grid-cols-[minmax(0,1fr)_auto]"
-                  key={set.id}
-                >
-                  <EditSetForm sessionId={sessionId} set={set} />
-                  <div className="lg:pt-7">
-                    <DeleteSetForm sessionId={sessionId} set={set} />
-                  </div>
-                </li>
+                <SetListItem key={set.id} sessionId={sessionId} set={set} />
               ))}
             </ul>
           </details>
@@ -785,6 +1099,11 @@ export function WorkoutSetManager({
   sessionId,
   sets,
 }: WorkoutSetManagerProps) {
+  const [restTimerStartSignal, setRestTimerStartSignal] = useState(0);
+  const handleSetSaved = useCallback(() => {
+    setRestTimerStartSignal(Date.now());
+  }, []);
+
   return (
     <div className="space-y-6">
       <section className="space-y-3">
@@ -796,10 +1115,12 @@ export function WorkoutSetManager({
         </div>
         <WorkoutSetEntry
           exercises={exercises}
+          onSetSaved={handleSetSaved}
           previousBestByExerciseId={previousBestByExerciseId}
           sessionId={sessionId}
           sets={sets}
         />
+        <RestTimer startSignal={restTimerStartSignal} />
       </section>
 
       <details className="space-y-3">
