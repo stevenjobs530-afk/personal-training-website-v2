@@ -444,6 +444,11 @@ This file tracks what has been done, what failed, and what future Codex sessions
   - Verified `npm run lint`, `npm run build`, and `git diff --check` pass.
   - Completed visual QA against the supplied concept references across desktop, iPad, Phone preview, and a 390 px mobile viewport. Fixed the Phone preview's intrinsic-width overflow so Workouts headings, actions, and activity cards stay inside the 390 px canvas.
   - Confirmed the authenticated Today, Workouts, Cardio, login, exercise-library, and strength-session surfaces retain their existing data and action behavior with no auth, Supabase, schema, RLS, or protected-route changes.
+- 2026-07-19: Removed the development Preview width selector from the product interface:
+  - Removed the user-facing Phone, iPad, and Desktop buttons together with their browser-local preview-width state.
+  - Kept the approved 1120 px desktop content maximum while allowing the interface to adapt automatically to the real viewport.
+  - Preserved the compact mobile title and overflow fixes under the real mobile breakpoint.
+  - Kept authentication, Supabase, RLS, protected routes, and training actions unchanged.
 
 ## Failed Or Abandoned Attempts
 
@@ -469,7 +474,7 @@ This file tracks what has been done, what failed, and what future Codex sessions
 - Stage 6 Rest Day schema, owner RLS policies, authenticated-only grants, and date-conflict triggers are applied in the selected Supabase project.
 - Authenticated cardio exercise creation, cardio entry creation, refresh persistence, and `/cardio` recent history still need owner manual QA with real owner data.
 - Authenticated Rest Day logging, automatic blank-day backfill, removal, and training-after-removal correction flows still need owner manual QA with real owner data.
-- Full logged-in visual QA of the 2026-06-27 top navigation, Preview width control, and protected `/history` overview still needs owner confirmation in an authenticated browser session.
+- Full production-device QA of the responsive top navigation and protected `/history` overview still needs owner confirmation after deployment.
 - Full logged-in visual QA of the 2026-06-27 History folds, Saved Exercises categories, and Progress trend charts still needs owner confirmation in an authenticated browser session.
 
 ## Current Priorities
@@ -481,7 +486,7 @@ This file tracks what has been done, what failed, and what future Codex sessions
 - Test authenticated workout session creation, warmup/working set entry, and recent history display with the controlled owner account.
 - Complete owner-controlled production QA now that Vercel environment variables and Supabase Auth URL settings are configured.
 - Test owner-controlled cardio logging on localhost or production now that the Stage 5 cardio setup is applied in Supabase.
-- Review the synced 2026-06-27 preview shell in an owner logged-in browser after GitHub/Vercel update.
+- Review the responsive app shell in an owner logged-in browser after the next GitHub/Vercel update.
 - Review the synced 2026-06-27 History, Exercises, and Progress polish in an owner logged-in browser after GitHub/Vercel update.
 - Test real Rest Day flows on localhost or production using the controlled owner account now that the Stage 6 Rest Day setup is applied in Supabase.
 
@@ -494,7 +499,7 @@ This file tracks what has been done, what failed, and what future Codex sessions
 - Test real login/logout on production using the controlled owner account.
 - Test real production workout session creation, warmup/working set entry, refresh persistence, logout protection, and recent history display using the controlled owner account.
 - Test `/cardio/new` with a real owner cardio entry, such as Indoor Walking for 30 minutes, 3 km, and kcal; refresh `/cardio`, add Indoor Cycling with kcal only, and confirm signed-out `/cardio` and `/cardio/new` redirect to login.
-- In an owner logged-in browser session, open `/history`, switch Preview width between Phone, iPad, and Desktop, confirm the top tabs remain usable, and confirm the History cards show expected strength/cardio records.
+- In owner logged-in browser sessions at mobile, tablet, and desktop widths, open `/history`, confirm the top tabs remain usable, and confirm the History cards show expected strength/cardio records.
 - In an owner logged-in browser session, open `/exercises` and `/progress`, confirm the Saved Exercises categories and progress trend accordions match the intended visual direction, then decide what polish should happen next.
 
 ## Things To Avoid Repeating

@@ -125,3 +125,11 @@ This file records important project decisions. Add new entries when the project 
 - **Reason:** The rest timer supports in-gym pacing between strength sets without becoming workout history or cross-device training data.
 - **Alternatives considered:** store a default rest duration in Supabase, store each rest interval as workout data, or keep no saved preference.
 - **Consequences:** `/workouts/[sessionId]` can remember the preferred rest duration in browser localStorage and start a lightweight countdown after a new set is saved. The timer does not change Supabase schema, RLS policies, authentication, saved workout rows, Progress calculations, or cross-device sync behavior.
+
+## 2026-07-19
+
+### Decision: Let the viewport choose the responsive layout automatically
+
+- **Reason:** Phone, iPad, and Desktop width controls are useful during development but should not appear as product choices in the private training app.
+- **Alternatives considered:** keep the manual Preview width selector in production, detect named devices from the user agent, or expose a persistent display preference.
+- **Consequences:** The app now renders one responsive interface that adapts to the available viewport through CSS breakpoints. Development QA uses browser viewport sizes instead of product UI controls. The previous browser-local `preview-width` control decision is superseded; existing stored values are ignored. Authentication, Supabase, RLS, routes, and training data behavior are unchanged.
