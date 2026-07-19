@@ -29,20 +29,31 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-[var(--background)] px-4 py-10">
-      <section className="w-full max-w-sm space-y-6">
-        <div className="space-y-3">
-          <p className="text-sm font-semibold uppercase tracking-[0.16em] text-[var(--muted)]">
-            Private Access
-          </p>
-          <h1 className="text-3xl font-bold text-[var(--foreground)]">Login</h1>
-          <p className="text-base leading-7 text-[var(--muted)]">
-            Sign in with the private Supabase email and app password. Public
-            signup is intentionally not part of Version 1.
-          </p>
+    <main className="login-shell">
+      <section className="login-grid">
+        <div className="login-copy">
+          <p className="login-copy-kicker">Private training workspace</p>
+          <div>
+            <h1>Personal Training.</h1>
+            <p>
+              A focused place to record strength, cardio and recovery across
+              the gym you actually use.
+            </p>
+          </div>
         </div>
 
-        <LoginForm isConfigured={isConfigured} nextPath={nextPath} />
+        <div className="login-panel">
+          <div className="login-panel-inner">
+            <header className="login-panel-heading">
+              <h2>Welcome back</h2>
+              <p>
+                Sign in to the private owner account. Public signup is not
+                available.
+              </p>
+            </header>
+            <LoginForm isConfigured={isConfigured} nextPath={nextPath} />
+          </div>
+        </div>
       </section>
     </main>
   );

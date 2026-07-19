@@ -1,6 +1,9 @@
 "use client";
 
 import { useActionState, useEffect, useRef } from "react";
+import { BarbellIcon } from "@phosphor-icons/react/dist/csr/Barbell";
+import { CaretDownIcon } from "@phosphor-icons/react/dist/csr/CaretDown";
+import { HeartbeatIcon } from "@phosphor-icons/react/dist/csr/Heartbeat";
 import {
   createExercise,
   deleteReservedCardioStrengthExercises,
@@ -353,12 +356,12 @@ function ExerciseCategory({
   count: number;
   defaultOpen?: boolean;
   description: string;
-  icon: string;
+  icon: React.ReactNode;
   title: string;
 }) {
   return (
     <details
-      className="rounded-md border border-[var(--border)] bg-[var(--surface)] p-3 shadow-sm"
+      className="group rounded-md border border-[var(--border)] bg-[var(--surface)] p-3 shadow-sm"
       open={defaultOpen}
     >
       <summary className="flex min-h-14 cursor-pointer items-center justify-between gap-4">
@@ -380,9 +383,12 @@ function ExerciseCategory({
             </p>
           </div>
         </div>
-        <span className="shrink-0 text-lg font-black text-[var(--foreground)]">
-          ^
-        </span>
+        <CaretDownIcon
+          aria-hidden="true"
+          className="shrink-0 transition-transform group-open:rotate-180"
+          size={20}
+          weight="bold"
+        />
       </summary>
 
       <div className="pt-4">{children}</div>
@@ -438,7 +444,7 @@ export function ExerciseManager({
   reservedStrengthExercises,
 }: ExerciseManagerProps) {
   return (
-    <div className="space-y-6">
+    <div className="exercise-library-shell">
       <AddExerciseForm />
 
       <section className="space-y-3">
@@ -456,7 +462,7 @@ export function ExerciseManager({
             count={exercises.length}
             defaultOpen
             description="Strength and resistance training to build muscle and improve power."
-            icon="H"
+            icon={<BarbellIcon aria-hidden="true" size={24} weight="bold" />}
             title="Anaerobic"
           >
             <ReservedStrengthCleanup exercises={reservedStrengthExercises} />
@@ -480,7 +486,7 @@ export function ExerciseManager({
             count={cardioExercises.length}
             defaultOpen
             description="Cardiovascular training to improve endurance and overall health."
-            icon="A"
+            icon={<HeartbeatIcon aria-hidden="true" size={24} weight="bold" />}
             title="Aerobic"
           >
             {cardioLoadError ? (

@@ -3,6 +3,9 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSyncExternalStore } from "react";
+import { DesktopIcon } from "@phosphor-icons/react/dist/csr/Desktop";
+import { DeviceMobileIcon } from "@phosphor-icons/react/dist/csr/DeviceMobile";
+import { DeviceTabletIcon } from "@phosphor-icons/react/dist/csr/DeviceTablet";
 
 type PreviewMode = "phone" | "ipad" | "desktop";
 
@@ -35,29 +38,14 @@ function getStoredPreviewMode(value: string | null): PreviewMode {
 
 function DeviceIcon({ mode }: { mode: PreviewMode }) {
   if (mode === "phone") {
-    return (
-      <span
-        aria-hidden="true"
-        className="h-5 w-3 rounded-[3px] border-2 border-current"
-      />
-    );
+    return <DeviceMobileIcon aria-hidden="true" size={19} weight="bold" />;
   }
 
   if (mode === "ipad") {
-    return (
-      <span
-        aria-hidden="true"
-        className="h-3.5 w-6 rounded-[3px] border-2 border-current"
-      />
-    );
+    return <DeviceTabletIcon aria-hidden="true" size={20} weight="bold" />;
   }
 
-  return (
-    <span aria-hidden="true" className="flex flex-col items-center gap-0.5">
-      <span className="h-3.5 w-6 rounded-[2px] border-2 border-current" />
-      <span className="h-1 w-3 rounded-full bg-current" />
-    </span>
-  );
+  return <DesktopIcon aria-hidden="true" size={21} weight="bold" />;
 }
 
 function getPreviewModeSnapshot() {
@@ -93,27 +81,22 @@ export function PreviewFrame({ children }: PreviewFrameProps) {
     previewModes.find((mode) => mode.id === previewMode) ?? previewModes[2];
 
   return (
-    <div className="mx-auto w-full">
+    <div className="preview-frame">
       <div
-        className="mx-auto w-full transition-[max-width]"
+        className="preview-canvas"
+        data-preview-mode={previewMode}
         style={{ maxWidth: `${selectedMode.width}px` }}
       >
-        <div className="mb-3 rounded-md bg-[#1d2a24] px-3 py-3 text-white">
-          <div className="flex flex-wrap items-center gap-2 sm:justify-center">
-            <span className="mr-1 text-sm font-bold text-white/80">
-              Preview width:
-            </span>
+        <div className="preview-controls">
+          <span className="preview-controls-label">Preview width</span>
+          <div className="preview-controls-group">
             {previewModes.map((mode) => {
               const isSelected = mode.id === previewMode;
 
               return (
                 <button
                   aria-pressed={isSelected}
-                  className={
-                    isSelected
-                      ? "inline-flex min-h-11 items-center gap-2 rounded-md bg-[var(--accent-soft)] px-4 text-sm font-bold text-[var(--accent-strong)]"
-                      : "inline-flex min-h-11 items-center gap-2 rounded-md bg-white/10 px-4 text-sm font-bold text-white/80 hover:bg-white/15 hover:text-white"
-                  }
+                  className="preview-control-button"
                   key={mode.id}
                   onClick={() => savePreviewMode(mode.id)}
                   type="button"
@@ -140,20 +123,16 @@ export function TopNavigation({ items }: TopNavigationProps) {
   const pathname = usePathname();
 
   return (
-    <nav className="border-b border-[var(--border)] bg-[var(--surface)]">
-      <div className="overflow-x-auto">
-        <div className="flex min-w-max gap-2 px-4 py-3 sm:px-6">
+    <nav className="top-nav-shell" aria-label="Primary navigation">
+      <div className="top-nav-scroller">
+        <div className="top-nav-list">
           {items.map((item) => {
             const isActive = isActivePath(pathname, item.href);
 
             return (
               <Link
                 aria-current={isActive ? "page" : undefined}
-                className={
-                  isActive
-                    ? "inline-flex min-h-12 items-center rounded-md bg-[var(--accent-soft)] px-4 text-sm font-bold text-[var(--accent-strong)]"
-                    : "inline-flex min-h-12 items-center rounded-md px-4 text-sm font-bold text-[var(--muted)] hover:bg-[var(--surface-strong)] hover:text-[var(--foreground)]"
-                }
+                className="top-nav-link"
                 href={item.href}
                 key={item.href}
               >

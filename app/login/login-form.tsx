@@ -125,15 +125,13 @@ export function LoginForm({ isConfigured, nextPath }: LoginFormProps) {
 
     return (
       <form
-        className="space-y-4 rounded-md border border-[var(--border)] bg-[var(--surface)] p-4"
+        className="login-form-card"
         onSubmit={updatePassword}
       >
-        <label className="block space-y-2">
-          <span className="text-sm font-semibold text-[var(--foreground)]">
-            New password
-          </span>
+        <label className="login-field">
+          <span>New password</span>
           <input
-            className="min-h-12 w-full rounded-md border border-[var(--border)] bg-white px-3 text-base outline-none focus:border-[var(--accent)] disabled:bg-[var(--surface-strong)]"
+            className="login-input"
             type="password"
             name="new-password"
             autoComplete="new-password"
@@ -145,12 +143,10 @@ export function LoginForm({ isConfigured, nextPath }: LoginFormProps) {
           />
         </label>
 
-        <label className="block space-y-2">
-          <span className="text-sm font-semibold text-[var(--foreground)]">
-            Confirm new password
-          </span>
+        <label className="login-field">
+          <span>Confirm new password</span>
           <input
-            className="min-h-12 w-full rounded-md border border-[var(--border)] bg-white px-3 text-base outline-none focus:border-[var(--accent)] disabled:bg-[var(--surface-strong)]"
+            className="login-input"
             type="password"
             name="confirm-password"
             autoComplete="new-password"
@@ -163,22 +159,17 @@ export function LoginForm({ isConfigured, nextPath }: LoginFormProps) {
         </label>
 
         {recoveryMessage ? (
-          <p className="rounded-md border border-[var(--border)] bg-[var(--surface-strong)] px-3 py-2 text-sm font-semibold text-[var(--muted)]">
-            {recoveryMessage}
-          </p>
+          <p className="notice">{recoveryMessage}</p>
         ) : null}
 
         {recoveryError ? (
-          <p
-            className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold text-red-700"
-            role="alert"
-          >
+          <p className="notice notice-error" role="alert">
             {recoveryError}
           </p>
         ) : null}
 
         <button
-          className="min-h-12 w-full rounded-md bg-[var(--accent)] px-4 text-base font-bold text-white disabled:cursor-not-allowed disabled:bg-[var(--muted)]"
+          className="login-submit"
           type="submit"
           disabled={isRecoveryDisabled}
         >
@@ -191,22 +182,18 @@ export function LoginForm({ isConfigured, nextPath }: LoginFormProps) {
   return (
     <form
       action={formAction}
-      className="space-y-4 rounded-md border border-[var(--border)] bg-[var(--surface)] p-4"
+      className="login-form-card"
     >
       <input name="next" type="hidden" value={nextPath} />
 
       {recoveryMessage ? (
-        <p className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-800">
-          {recoveryMessage}
-        </p>
+        <p className="notice notice-success">{recoveryMessage}</p>
       ) : null}
 
-      <label className="block space-y-2">
-        <span className="text-sm font-semibold text-[var(--foreground)]">
-          Email
-        </span>
+      <label className="login-field">
+        <span>Email</span>
         <input
-          className="min-h-12 w-full rounded-md border border-[var(--border)] bg-white px-3 text-base outline-none focus:border-[var(--accent)] disabled:bg-[var(--surface-strong)]"
+          className="login-input"
           type="email"
           name="email"
           autoComplete="username"
@@ -216,12 +203,10 @@ export function LoginForm({ isConfigured, nextPath }: LoginFormProps) {
         />
       </label>
 
-      <label className="block space-y-2">
-        <span className="text-sm font-semibold text-[var(--foreground)]">
-          Password
-        </span>
+      <label className="login-field">
+        <span>Password</span>
         <input
-          className="min-h-12 w-full rounded-md border border-[var(--border)] bg-white px-3 text-base outline-none focus:border-[var(--accent)] disabled:bg-[var(--surface-strong)]"
+          className="login-input"
           type="password"
           name="password"
           autoComplete="current-password"
@@ -232,22 +217,19 @@ export function LoginForm({ isConfigured, nextPath }: LoginFormProps) {
       </label>
 
       {state.error ? (
-        <p
-          className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold text-red-700"
-          role="alert"
-        >
+        <p className="notice notice-error" role="alert">
           {state.error}
         </p>
       ) : null}
 
       {!isConfigured ? (
-        <p className="rounded-md border border-[var(--border)] bg-[var(--surface-strong)] px-3 py-2 text-sm font-semibold text-[var(--muted)]">
+        <p className="notice">
           Supabase environment variables are not configured locally yet.
         </p>
       ) : null}
 
       <button
-        className="min-h-12 w-full rounded-md bg-[var(--accent)] px-4 text-base font-bold text-white disabled:cursor-not-allowed disabled:bg-[var(--muted)]"
+        className="login-submit"
         type="submit"
         disabled={isDisabled}
       >

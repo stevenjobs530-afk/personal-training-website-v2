@@ -434,6 +434,16 @@ This file tracks what has been done, what failed, and what future Codex sessions
   - Did not change Supabase schema, RLS policies, auth flow, route protection, live database data, Vercel deployment, GitHub branch, pull request, push, or `.claude/`.
   - Verified `npm run lint`, `npm run build`, desktop rendered preview, 390px mobile rendered preview, no page-level mobile horizontal overflow, no browser console warnings/errors, manual rest timer countdown, rest duration persistence after refresh, compact Recorded sets rows, and one-row Edit expansion.
   - Automatic countdown after saving a new set still needs owner confirmation during local preview because Codex intentionally did not create or modify live Supabase workout data.
+- 2026-07-18: Completed a local-only visual redesign in the dedicated UI clone:
+  - Replaced the warm beige/green presentation with the approved cool-gray concept language: a subtle grid and radial light, Apple-style system typography, black editorial headings, blue/teal/green semantic accents, translucent white panels, fine borders, large radii, and soft shadows.
+  - Reworked the shared app shell, top navigation, and Phone/iPad/Desktop preview control while preserving the existing routes, active-tab behavior, localStorage preview-width preference, sign-out Server Action, and responsive widths.
+  - Reworked the login and password-recovery presentation without changing the Supabase login, recovery-session, password-update, redirect, or public-signup boundaries.
+  - Reworked Today into a real-data status panel plus Strength, Cardio, and Recovery cards. The existing Rest Day actions, pending state, setup errors, training conflicts, and disabled conditions remain unchanged.
+  - Applied the same visual hierarchy to the exercise library and strength-session workspace, including a two-column desktop set-entry/recorded-set layout and mobile stacking, without changing Supabase queries or workout actions.
+  - Added Phosphor Icons for consistent interface icons; no equipment imagery, fake workout records, public preview route, authentication bypass, new database query, schema change, or Supabase configuration was added.
+  - Verified `npm run lint`, `npm run build`, and `git diff --check` pass.
+  - Completed visual QA against the supplied concept references across desktop, iPad, Phone preview, and a 390 px mobile viewport. Fixed the Phone preview's intrinsic-width overflow so Workouts headings, actions, and activity cards stay inside the 390 px canvas.
+  - Confirmed the authenticated Today, Workouts, Cardio, login, exercise-library, and strength-session surfaces retain their existing data and action behavior with no auth, Supabase, schema, RLS, or protected-route changes.
 
 ## Failed Or Abandoned Attempts
 

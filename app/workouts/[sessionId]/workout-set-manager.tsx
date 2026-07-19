@@ -153,7 +153,7 @@ function RestTimer({ startSignal }: { startSignal: number }) {
   }
 
   return (
-    <section className="space-y-3 rounded-md border border-[var(--border)] bg-white p-4">
+    <section className="rest-timer-card space-y-3 rounded-md border border-[var(--border)] bg-white p-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="space-y-1">
           <h3 className="text-base font-bold text-[var(--foreground)]">Rest timer</h3>
@@ -560,7 +560,7 @@ function AddSetForm({
     <form
       ref={formRef}
       action={formAction}
-      className="space-y-4 rounded-md border border-[var(--border)] bg-[var(--surface)] p-4"
+      className="set-entry-card space-y-4 rounded-md border border-[var(--border)] bg-[var(--surface)] p-4"
     >
       <input name="session_id" type="hidden" value={sessionId} />
       <input name="exercise_id" type="hidden" value={exerciseId} />
@@ -1105,14 +1105,14 @@ export function WorkoutSetManager({
   }, []);
 
   return (
-    <div className="space-y-6">
-      <section className="space-y-3">
-        <div className="flex min-h-11 items-center justify-between">
+    <div className="workout-session-layout">
+      <section className="workout-entry-panel">
+        <header>
           <h2 className="text-xl font-bold text-[var(--foreground)]">Add set</h2>
           <span className="text-sm font-semibold text-[var(--muted)]">
             {sets.length} saved
           </span>
-        </div>
+        </header>
         <WorkoutSetEntry
           exercises={exercises}
           onSetSaved={handleSetSaved}
@@ -1120,18 +1120,20 @@ export function WorkoutSetManager({
           sessionId={sessionId}
           sets={sets}
         />
-        <RestTimer startSignal={restTimerStartSignal} />
       </section>
 
-      <details className="space-y-3">
-        <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between">
-          <h2 className="text-xl font-bold text-[var(--foreground)]">Recorded sets</h2>
-          <span className="text-sm font-semibold text-[var(--muted)]">
-            {sets.length} saved
-          </span>
-        </summary>
-        <SetList sessionId={sessionId} sets={sets} />
-      </details>
+      <aside className="workout-session-side">
+        <details className="space-y-3" open>
+          <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between">
+            <h2 className="text-xl font-bold text-[var(--foreground)]">Recorded sets</h2>
+            <span className="text-sm font-semibold text-[var(--muted)]">
+              {sets.length} saved
+            </span>
+          </summary>
+          <SetList sessionId={sessionId} sets={sets} />
+        </details>
+        <RestTimer startSignal={restTimerStartSignal} />
+      </aside>
     </div>
   );
 }

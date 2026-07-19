@@ -1,4 +1,7 @@
 import Link from "next/link";
+import { ArrowRightIcon } from "@phosphor-icons/react/dist/ssr/ArrowRight";
+import { BarbellIcon } from "@phosphor-icons/react/dist/ssr/Barbell";
+import { HeartbeatIcon } from "@phosphor-icons/react/dist/ssr/Heartbeat";
 import { AppShell } from "../_components/app-shell";
 import { PlaceholderPage } from "../_components/placeholder-page";
 import { requireAuth } from "@/lib/auth/require-auth";
@@ -18,12 +21,14 @@ const trainingChoices = [
     label: "Strength Training",
     description: "Weights, machines, warmup sets, working sets, reps.",
     cta: "Start strength",
+    tone: "strength",
   },
   {
     href: "/cardio/new",
     label: "Cardio",
     description: "Walking and running with distance, cycling and elliptical by kcal.",
     cta: "Record cardio",
+    tone: "cardio",
   },
 ];
 
@@ -67,29 +72,32 @@ export default async function DashboardPage() {
           restDay={todayStatus.restDay}
           setupError={todayStatus.setupError ?? backfillResult.setupError}
           todayLabel={formatDateKey(todayDateKey)}
-        />
-
-        <div className="grid gap-3 sm:grid-cols-2">
+        >
           {trainingChoices.map((choice) => (
             <Link
-              className="flex min-h-40 flex-col justify-between rounded-md border border-[var(--border)] bg-[var(--surface)] p-4 shadow-sm hover:border-[var(--accent)]"
+              className="training-choice-card"
+              data-tone={choice.tone}
               href={choice.href}
               key={choice.href}
             >
-              <div className="space-y-2">
-                <h2 className="text-xl font-black text-[var(--foreground)]">
-                  {choice.label}
-                </h2>
-                <p className="text-sm leading-6 text-[var(--muted)]">
-                  {choice.description}
-                </p>
+              <div className="training-card-copy">
+                <span className="training-card-icon">
+                  {choice.tone === "cardio" ? (
+                    <HeartbeatIcon aria-hidden="true" size={28} weight="bold" />
+                  ) : (
+                    <BarbellIcon aria-hidden="true" size={28} weight="bold" />
+                  )}
+                </span>
+                <h2>{choice.label}</h2>
+                <p>{choice.description}</p>
               </div>
-              <span className="mt-4 inline-flex min-h-11 items-center justify-center rounded-md bg-[var(--accent)] px-4 text-sm font-bold text-white">
-                {choice.cta}
+              <span className="training-card-link">
+                <span>{choice.cta}</span>
+                <ArrowRightIcon aria-hidden="true" size={20} weight="bold" />
               </span>
             </Link>
           ))}
-        </div>
+        </TodayRestDayCard>
       </PlaceholderPage>
     </AppShell>
   );
