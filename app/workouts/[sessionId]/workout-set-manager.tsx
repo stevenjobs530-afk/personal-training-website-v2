@@ -9,6 +9,7 @@ import {
   useState,
   useSyncExternalStore,
 } from "react";
+import { createPortal } from "react-dom";
 import {
   createWorkoutExercise,
   createWorkoutSet,
@@ -77,7 +78,9 @@ function ActionMessage({ state }: { state: WorkoutActionState }) {
       : "border-red-200 bg-red-50 text-red-700";
 
   return (
-    <p className={`rounded-md border px-3 py-2 text-sm font-semibold ${toneClass}`}>
+    <p
+      className={`rounded-md border px-3 py-2 text-sm font-semibold ${toneClass}`}
+    >
       {state.message}
     </p>
   );
@@ -89,29 +92,39 @@ function RestTimer({ startSignal }: { startSignal: number }) {
     getRestDurationSnapshot,
     getRestDurationServerSnapshot,
   );
-  const [activeTotalSeconds, setActiveTotalSeconds] = useState(defaultRestDurationSeconds);
+  const [activeTotalSeconds, setActiveTotalSeconds] = useState(
+    defaultRestDurationSeconds,
+  );
   const [remainingSeconds, setRemainingSeconds] = useState<number | null>(null);
   const [endsAt, setEndsAt] = useState<number | null>(null);
   const [completed, setCompleted] = useState(false);
   const handledStartSignalRef = useRef(0);
   const isRunning = endsAt !== null;
+  const isTimerVisible = remainingSeconds !== null;
   const visibleRemaining = remainingSeconds ?? durationSeconds;
   const progressPercent =
     remainingSeconds === null
       ? 0
       : Math.min(
           100,
-          Math.max(0, ((activeTotalSeconds - remainingSeconds) / activeTotalSeconds) * 100),
+          Math.max(
+            0,
+            ((activeTotalSeconds - remainingSeconds) / activeTotalSeconds) *
+              100,
+          ),
         );
 
-  const startTimer = useCallback((duration = durationSeconds) => {
-    const nextDuration = clampRestDuration(duration);
+  const startTimer = useCallback(
+    (duration = durationSeconds) => {
+      const nextDuration = clampRestDuration(duration);
 
-    setActiveTotalSeconds(nextDuration);
-    setRemainingSeconds(nextDuration);
-    setCompleted(false);
-    setEndsAt(Date.now() + nextDuration * 1000);
-  }, [durationSeconds]);
+      setActiveTotalSeconds(nextDuration);
+      setRemainingSeconds(nextDuration);
+      setCompleted(false);
+      setEndsAt(Date.now() + nextDuration * 1000);
+    },
+    [durationSeconds],
+  );
 
   useEffect(() => {
     if (startSignal > 0 && handledStartSignalRef.current !== startSignal) {
@@ -126,7 +139,10 @@ function RestTimer({ startSignal }: { startSignal: number }) {
     }
 
     const updateRemaining = () => {
-      const nextRemaining = Math.max(0, Math.ceil((endsAt - Date.now()) / 1000));
+      const nextRemaining = Math.max(
+        0,
+        Math.ceil((endsAt - Date.now()) / 1000),
+      );
       setRemainingSeconds(nextRemaining);
 
       if (nextRemaining <= 0) {
@@ -146,93 +162,176 @@ function RestTimer({ startSignal }: { startSignal: number }) {
     saveRestDuration(nextDuration);
   }
 
+  function adjustActiveTimer(deltaSeconds: number) {
+    if (remainingSeconds === null) {
+      return;
+    }
+
+    const currentRemaining = endsAt
+      ? Math.max(0, Math.ceil((endsAt - Date.now()) / 1000))
+      : remainingSeconds;
+    const nextRemaining = Math.min(
+      maxRestDurationSeconds,
+      Math.max(0, currentRemaining + deltaSeconds),
+    );
+    const nextTotal = completed
+      ? nextRemaining
+      : Math.min(
+          maxRestDurationSeconds,
+          Math.max(nextRemaining, activeTotalSeconds + deltaSeconds),
+        );
+
+    setActiveTotalSeconds(nextTotal);
+    setRemainingSeconds(nextRemaining);
+    setCompleted(nextRemaining === 0);
+    setEndsAt(nextRemaining === 0 ? null : Date.now() + nextRemaining * 1000);
+  }
+
   function clearTimer() {
     setEndsAt(null);
     setRemainingSeconds(null);
     setCompleted(false);
   }
 
+  const floatingTimer =
+    isTimerVisible && typeof document !== "undefined"
+      ? createPortal(
+          <aside aria-label="Active rest timer" className="floating-rest-timer">
+            <div className="floating-rest-timer__header">
+              <div>
+                <p className="floating-rest-timer__eyebrow">
+                  {completed ? "Rest complete" : "Rest countdown"}
+                </p>
+                <p aria-live="polite" className="floating-rest-timer__time">
+                  {formatDuration(visibleRemaining)}
+                </p>
+              </div>
+              <span aria-hidden="true" className="floating-rest-timer__pulse" />
+            </div>
+
+            <div className="floating-rest-timer__progress" aria-hidden="true">
+              <span style={{ width: `${progressPercent}%` }} />
+            </div>
+
+            <div className="floating-rest-timer__controls">
+              <button
+                aria-label="Decrease active rest countdown by 30 seconds"
+                disabled={visibleRemaining <= 0}
+                onClick={() => adjustActiveTimer(-restDurationStepSeconds)}
+                type="button"
+              >
+                <span aria-hidden="true">−</span>
+                30 sec
+              </button>
+              <button
+                aria-label="Increase active rest countdown by 30 seconds"
+                disabled={visibleRemaining >= maxRestDurationSeconds}
+                onClick={() => adjustActiveTimer(restDurationStepSeconds)}
+                type="button"
+              >
+                <span aria-hidden="true">+</span>
+                30 sec
+              </button>
+            </div>
+
+            <button
+              className="floating-rest-timer__cancel"
+              onClick={clearTimer}
+              type="button"
+            >
+              Cancel timer
+            </button>
+          </aside>,
+          document.body,
+        )
+      : null;
+
   return (
-    <section className="rest-timer-card space-y-3 rounded-md border border-[var(--border)] bg-white p-4">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div className="space-y-1">
-          <h3 className="text-base font-bold text-[var(--foreground)]">Rest timer</h3>
-          <p className="text-sm leading-6 text-[var(--muted)]">
-            {isRunning
-              ? "Counting down after the saved set."
-              : completed
-                ? "Rest complete. Ready for the next set."
-                : "Starts after you save a new set."}
-          </p>
+    <>
+      <section className="rest-timer-card space-y-3 rounded-md border border-[var(--border)] bg-white p-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div className="space-y-1">
+            <h3 className="text-base font-bold text-[var(--foreground)]">
+              Rest timer
+            </h3>
+            <p className="text-sm leading-6 text-[var(--muted)]">
+              {isRunning
+                ? "Counting down after the saved set."
+                : completed
+                  ? "Rest complete. Ready for the next set."
+                  : "Starts after you save a new set."}
+            </p>
+          </div>
+
+          <div className="grid min-w-36 grid-cols-[44px_1fr_44px] overflow-hidden rounded-md border border-[var(--border)] bg-[var(--surface)]">
+            <button
+              aria-label="Decrease rest time by 30 seconds"
+              className="min-h-11 border-r border-[var(--border)] text-base font-bold text-[var(--accent)] disabled:cursor-not-allowed disabled:text-[var(--muted)]"
+              disabled={durationSeconds <= minRestDurationSeconds}
+              onClick={() => adjustDuration(-restDurationStepSeconds)}
+              type="button"
+            >
+              -
+            </button>
+            <output className="flex min-h-11 items-center justify-center px-3 text-sm font-bold text-[var(--foreground)]">
+              {formatDuration(durationSeconds)}
+            </output>
+            <button
+              aria-label="Increase rest time by 30 seconds"
+              className="min-h-11 border-l border-[var(--border)] text-base font-bold text-[var(--accent)] disabled:cursor-not-allowed disabled:text-[var(--muted)]"
+              disabled={durationSeconds >= maxRestDurationSeconds}
+              onClick={() => adjustDuration(restDurationStepSeconds)}
+              type="button"
+            >
+              +
+            </button>
+          </div>
         </div>
 
-        <div className="grid min-w-36 grid-cols-[44px_1fr_44px] overflow-hidden rounded-md border border-[var(--border)] bg-[var(--surface)]">
+        <div
+          aria-live="polite"
+          className={
+            completed
+              ? "rounded-md border border-emerald-200 bg-emerald-50 px-3 py-3"
+              : "rounded-md border border-[var(--border)] bg-[var(--surface)] px-3 py-3"
+          }
+        >
+          <div className="flex items-center justify-between gap-3">
+            <span className="text-sm font-semibold text-[var(--muted)]">
+              {isRunning ? "Next set in" : completed ? "Done" : "Ready"}
+            </span>
+            <span className="font-mono text-2xl font-bold text-[var(--foreground)]">
+              {formatDuration(visibleRemaining)}
+            </span>
+          </div>
+          <div className="mt-3 h-2 overflow-hidden rounded-full bg-[var(--border)]">
+            <div
+              className="h-full rounded-full bg-[var(--accent)] transition-[width]"
+              style={{ width: `${progressPercent}%` }}
+            />
+          </div>
+        </div>
+
+        <div className="flex flex-wrap gap-2">
           <button
-            aria-label="Decrease rest time by 30 seconds"
-            className="min-h-11 border-r border-[var(--border)] text-base font-bold text-[var(--accent)] disabled:cursor-not-allowed disabled:text-[var(--muted)]"
-            disabled={durationSeconds <= minRestDurationSeconds}
-            onClick={() => adjustDuration(-restDurationStepSeconds)}
+            className="min-h-10 rounded-md border border-[var(--border)] bg-[var(--surface)] px-3 text-sm font-bold text-[var(--foreground)]"
+            onClick={() => startTimer()}
             type="button"
           >
-            -
+            {isRunning ? "Restart" : "Start rest"}
           </button>
-          <output className="flex min-h-11 items-center justify-center px-3 text-sm font-bold text-[var(--foreground)]">
-            {formatDuration(durationSeconds)}
-          </output>
           <button
-            aria-label="Increase rest time by 30 seconds"
-            className="min-h-11 border-l border-[var(--border)] text-base font-bold text-[var(--accent)] disabled:cursor-not-allowed disabled:text-[var(--muted)]"
-            disabled={durationSeconds >= maxRestDurationSeconds}
-            onClick={() => adjustDuration(restDurationStepSeconds)}
+            className="min-h-10 rounded-md border border-[var(--border)] bg-white px-3 text-sm font-bold text-[var(--muted)] disabled:cursor-not-allowed disabled:text-[var(--border)]"
+            disabled={!isRunning && !completed && remainingSeconds === null}
+            onClick={clearTimer}
             type="button"
           >
-            +
+            Cancel timer
           </button>
         </div>
-      </div>
-
-      <div
-        aria-live="polite"
-        className={
-          completed
-            ? "rounded-md border border-emerald-200 bg-emerald-50 px-3 py-3"
-            : "rounded-md border border-[var(--border)] bg-[var(--surface)] px-3 py-3"
-        }
-      >
-        <div className="flex items-center justify-between gap-3">
-          <span className="text-sm font-semibold text-[var(--muted)]">
-            {isRunning ? "Next set in" : completed ? "Done" : "Ready"}
-          </span>
-          <span className="font-mono text-2xl font-bold text-[var(--foreground)]">
-            {formatDuration(visibleRemaining)}
-          </span>
-        </div>
-        <div className="mt-3 h-2 overflow-hidden rounded-full bg-[var(--border)]">
-          <div
-            className="h-full rounded-full bg-[var(--accent)] transition-[width]"
-            style={{ width: `${progressPercent}%` }}
-          />
-        </div>
-      </div>
-
-      <div className="flex flex-wrap gap-2">
-        <button
-          className="min-h-10 rounded-md border border-[var(--border)] bg-[var(--surface)] px-3 text-sm font-bold text-[var(--foreground)]"
-          onClick={() => startTimer()}
-          type="button"
-        >
-          {isRunning ? "Restart" : "Start rest"}
-        </button>
-        <button
-          className="min-h-10 rounded-md border border-[var(--border)] bg-white px-3 text-sm font-bold text-[var(--muted)] disabled:cursor-not-allowed disabled:text-[var(--border)]"
-          disabled={!isRunning && !completed && remainingSeconds === null}
-          onClick={clearTimer}
-          type="button"
-        >
-          Clear
-        </button>
-      </div>
-    </section>
+      </section>
+      {floatingTimer}
+    </>
   );
 }
 
@@ -275,7 +374,9 @@ function groupSetsByExercise(sets: SessionSet[]) {
 
     group.sets.push(set);
     group.latestCreatedAt =
-      set.createdAt > group.latestCreatedAt ? set.createdAt : group.latestCreatedAt;
+      set.createdAt > group.latestCreatedAt
+        ? set.createdAt
+        : group.latestCreatedAt;
     groups.set(set.exerciseId, group);
   });
 
@@ -298,7 +399,10 @@ function clampRestDuration(value: number) {
 
   return Math.min(
     maxRestDurationSeconds,
-    Math.max(minRestDurationSeconds, Math.round(value / restDurationStepSeconds) * restDurationStepSeconds),
+    Math.max(
+      minRestDurationSeconds,
+      Math.round(value / restDurationStepSeconds) * restDurationStepSeconds,
+    ),
   );
 }
 
@@ -348,7 +452,9 @@ function formatStepperValue(value: number, valueKind: "decimal" | "integer") {
     return String(Math.round(value));
   }
 
-  return Number.isInteger(value) ? String(value) : String(Number(value.toFixed(2)));
+  return Number.isInteger(value)
+    ? String(value)
+    : String(Number(value.toFixed(2)));
 }
 
 function NumberStepper({
@@ -571,7 +677,10 @@ function AddSetForm({
 
       <PreviousBestHint bestSet={previousBestSet} />
 
-      <fieldset className="grid grid-cols-2 gap-2" key={`${fieldResetKey}-${defaultSetKind}`}>
+      <fieldset
+        className="grid grid-cols-2 gap-2"
+        key={`${fieldResetKey}-${defaultSetKind}`}
+      >
         <legend className="sr-only">Set kind</legend>
         <label className="flex min-h-12 items-center justify-center rounded-md border border-[var(--border)] bg-white px-3 text-sm font-bold text-[var(--foreground)] has-[:checked]:border-[var(--accent)] has-[:checked]:bg-[var(--accent-soft)]">
           <input
@@ -797,7 +906,11 @@ function DeleteSetForm({
       action={formAction}
       className="space-y-2"
       onSubmit={(event) => {
-        if (!window.confirm(`Delete set ${set.setNumber} for ${set.exerciseName}?`)) {
+        if (
+          !window.confirm(
+            `Delete set ${set.setNumber} for ${set.exerciseName}?`,
+          )
+        ) {
           event.preventDefault();
         }
       }}
@@ -1108,7 +1221,9 @@ export function WorkoutSetManager({
     <div className="workout-session-layout">
       <section className="workout-entry-panel">
         <header>
-          <h2 className="text-xl font-bold text-[var(--foreground)]">Add set</h2>
+          <h2 className="text-xl font-bold text-[var(--foreground)]">
+            Add set
+          </h2>
           <span className="text-sm font-semibold text-[var(--muted)]">
             {sets.length} saved
           </span>
@@ -1125,7 +1240,9 @@ export function WorkoutSetManager({
       <aside className="workout-session-side">
         <details className="space-y-3" open>
           <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between">
-            <h2 className="text-xl font-bold text-[var(--foreground)]">Recorded sets</h2>
+            <h2 className="text-xl font-bold text-[var(--foreground)]">
+              Recorded sets
+            </h2>
             <span className="text-sm font-semibold text-[var(--muted)]">
               {sets.length} saved
             </span>

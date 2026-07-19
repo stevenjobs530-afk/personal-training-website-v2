@@ -449,6 +449,11 @@ This file tracks what has been done, what failed, and what future Codex sessions
   - Kept the approved 1120 px desktop content maximum while allowing the interface to adapt automatically to the real viewport.
   - Preserved the compact mobile title and overflow fixes under the real mobile breakpoint.
   - Kept authentication, Supabase, RLS, protected routes, and training actions unchanged.
+- 2026-07-19: Added an active rest-countdown floating window to strength sessions:
+  - The floating timer appears after a rest period starts and remains visible over the session workspace.
+  - Added live `-30 sec` and `+30 sec` controls, a progress indicator, and a full-width Cancel timer action.
+  - Kept the existing next-rest preset separate, browser-local, and bounded between 30 seconds and 10 minutes.
+  - Made the panel responsive to narrow iPhone viewports and independent of Supabase or workout-history data.
 
 ## Failed Or Abandoned Attempts
 
