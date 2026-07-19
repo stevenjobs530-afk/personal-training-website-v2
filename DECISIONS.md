@@ -133,3 +133,9 @@ This file records important project decisions. Add new entries when the project 
 - **Reason:** Phone, iPad, and Desktop width controls are useful during development but should not appear as product choices in the private training app.
 - **Alternatives considered:** keep the manual Preview width selector in production, detect named devices from the user agent, or expose a persistent display preference.
 - **Consequences:** The app now renders one responsive interface that adapts to the available viewport through CSS breakpoints. Development QA uses browser viewport sizes instead of product UI controls. The previous browser-local `preview-width` control decision is superseded; existing stored values are ignored. Authentication, Supabase, RLS, routes, and training data behavior are unchanged.
+
+### Decision: Ship the iPhone experience as an installable web app first
+
+- **Reason:** The owner wants a convenient Home Screen app without paying for Apple Developer Program distribution.
+- **Alternatives considered:** rebuild the product as a native SwiftUI app immediately, wrap the website in a native shell with free seven-day provisioning, or leave it as a browser-only website.
+- **Consequences:** The site publishes a web-app manifest, Apple Home Screen icon, standalone display metadata, and an installation guide in Settings. It remains online-first because authentication and training records depend on Supabase; no service worker caches private workout pages or data.

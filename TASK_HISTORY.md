@@ -454,6 +454,10 @@ This file tracks what has been done, what failed, and what future Codex sessions
   - Added live `-30 sec` and `+30 sec` controls, a progress indicator, and a full-width Cancel timer action.
   - Kept the existing next-rest preset separate, browser-local, and bounded between 30 seconds and 10 minutes.
   - Made the panel responsive to narrow iPhone viewports and independent of Supabase or workout-history data.
+- 2026-07-19: Added installable iPhone web-app support:
+  - Added standalone web-app metadata, a manifest, an Apple Home Screen icon, and 192/512 px install icons.
+  - Reworked Settings into a concise Safari installation guide while retaining the existing system-status information.
+  - Kept the app online-first and preserved Supabase authentication, storage, RLS, routes, and training actions without adding private-data caching.
 
 ## Failed Or Abandoned Attempts
 
