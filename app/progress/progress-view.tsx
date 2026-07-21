@@ -664,33 +664,47 @@ function ProgressItemList({
   }
 
   return (
-    <section className="space-y-2">
-      {items.map((item) => (
-        <details
-          className="rounded-md border border-[var(--border)] bg-[var(--surface)] shadow-sm"
-          key={item.id}
-          onToggle={(event) =>
-            onItemOpenChange(item.id, event.currentTarget.open)
-          }
-          open={openItemIds.has(item.id)}
-        >
-          <summary className="flex min-h-14 cursor-pointer items-center justify-between gap-4 px-3">
-            <div className="flex min-w-0 items-center gap-3">
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-[var(--accent-soft)] text-sm font-black text-[var(--accent-strong)]">
-                {item.initial}
+    <div className="progress-tile-container">
+      <section className="progress-tile-grid">
+        {items.map((item) => (
+          <details
+            className="progress-tile"
+            key={item.id}
+            onToggle={(event) =>
+              onItemOpenChange(item.id, event.currentTarget.open)
+            }
+            open={openItemIds.has(item.id)}
+          >
+            <summary className="progress-tile-summary">
+              <span className="progress-tile-identity">
+                <span className="progress-tile-initial">{item.initial}</span>
+                <span className="progress-tile-name" title={item.name}>
+                  {item.name}
+                </span>
               </span>
-              <span className="truncate text-base font-black text-[var(--foreground)]">
-                {item.name}
+              <span className="progress-tile-meta">
+                <span className="progress-tile-kind">{item.kind}</span>
+                <svg
+                  aria-hidden="true"
+                  className="progress-tile-caret"
+                  fill="none"
+                  viewBox="0 0 20 20"
+                >
+                  <path
+                    d="m5.5 7.5 4.5 4.5 4.5-4.5"
+                    stroke="currentColor"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                  />
+                </svg>
               </span>
-            </div>
-            <span className="shrink-0 rounded-md bg-[var(--surface-strong)] px-2 py-1 text-[0.68rem] font-black uppercase text-[var(--muted)]">
-              {item.kind}
-            </span>
-          </summary>
-          <ProgressPanel item={item} />
-        </details>
-      ))}
-    </section>
+            </summary>
+            <ProgressPanel item={item} />
+          </details>
+        ))}
+      </section>
+    </div>
   );
 }
 
