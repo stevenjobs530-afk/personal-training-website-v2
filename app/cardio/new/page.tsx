@@ -3,6 +3,7 @@ import { PlaceholderPage } from "../../_components/placeholder-page";
 import { requireAuth } from "@/lib/auth/require-auth";
 import { createClient } from "@/lib/supabase/server";
 import { getLocalDateKey } from "@/lib/training/dates";
+import { getAppPreferences } from "@/lib/preferences";
 import { NewCardioForm, type CardioExerciseOption } from "./new-cardio-form";
 
 export const dynamic = "force-dynamic";
@@ -16,6 +17,7 @@ type CardioExerciseRow = {
 
 export default async function NewCardioPage() {
   await requireAuth("/cardio/new");
+  const preferences = await getAppPreferences();
 
   const supabase = await createClient();
   const { data, error } = await supabase
@@ -49,6 +51,7 @@ export default async function NewCardioPage() {
         ) : null}
         <NewCardioForm
           defaultDate={getLocalDateKey()}
+          defaultDistanceUnit={preferences.distanceUnit}
           exercises={exercises}
         />
       </PlaceholderPage>

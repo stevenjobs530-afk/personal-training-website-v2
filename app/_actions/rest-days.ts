@@ -5,7 +5,6 @@ import { hasSupabaseEnv } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/server";
 import { getLocalDateKey } from "@/lib/training/dates";
 import {
-  deleteRestDayById,
   markRestDayForDate,
   type RestDayMutationResult,
 } from "@/lib/training/rest-days";
@@ -13,6 +12,8 @@ import {
 export type RestDayActionState = {
   status: "idle" | "success" | "error";
   message: string;
+  removedRestDate?: string;
+  removedRestNotes?: string;
 };
 
 type ActionContext =
@@ -136,24 +137,75 @@ export async function logSelectedRestDay(
   return toActionState(result);
 }
 
-export async function removeRestDay(formData: FormData): Promise<void> {
+export async function removeRestDay(
+  _previousState: RestDayActionState,
+  formData: FormData,
+): Promise<RestDayActionState> {
   const restDayId = getTrimmedValue(formData, "rest_day_id");
 
   if (!restDayId) {
-    return;
+    return { status: "error", message: "Rest Day could not be found." };
   }
 
   const context = await getActionContext();
 
   if (!context.ok) {
-    return;
+    return context.state;
   }
 
-  await deleteRestDayById({
-    restDayId,
-    supabase: context.supabase,
-    userId: context.userId,
-  });
+  const { data: restDay, error: lookupError } = await context.supabase
+    .from("rest_days")
+    .select("rest_date, notes")
+    .eq("id", restDayId)
+    .eq("user_id", context.userId)
+    .maybeSingle();
+
+  if (lookupError || !restDay) {
+    return { status: "error", message: "Rest Day could not be removed." };
+  }
+
+  const { error } = await context.supabase
+    .from("rest_days")
+    .delete()
+    .eq("id", restDayId)
+    .eq("user_id", context.userId);
+
+  if (error) {
+    return { status: "error", message: "Rest Day could not be removed." };
+  }
+
+  return {
+    status: "success",
+    message: "Rest Day removed.",
+    removedRestDate: String(restDay.rest_date),
+    removedRestNotes: restDay.notes ? String(restDay.notes) : "",
+  };
+}
+
+export async function undoRemoveRestDay(
+  _previousState: RestDayActionState,
+  formData: FormData,
+): Promise<RestDayActionState> {
+  const restDate = getTrimmedValue(formData, "rest_date");
+  if (!isDateInputValue(restDate)) {
+    return { status: "error", message: "The Rest Day could not be restored." };
+  }
+
+  const context = await getActionContext();
+  if (!context.ok) return context.state;
+
+  const result = await markRestDayForDate({ dateKey: restDate, supabase: context.supabase, userId: context.userId });
+  if (result.status === "success") {
+    const notes = getTrimmedValue(formData, "rest_notes");
+    if (notes) {
+      await context.supabase.from("rest_days").update({ notes }).eq("user_id", context.userId).eq("rest_date", restDate);
+    }
+  }
 
   revalidateRestDaySurfaces();
+
+  return {
+    status: result.status,
+    message: result.status === "success" ? "Rest Day restored." : result.message,
+  };
 }

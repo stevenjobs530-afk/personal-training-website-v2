@@ -383,3 +383,16 @@ using (user_id = auth.uid());
 ```
 
 Repeat the same ownership pattern for `workout_sessions` and `workout_sets`. Use `id = auth.uid()` for `profiles`.
+
+## Owner History Management
+
+Migration `20260722155833_add_safe_history_management.sql` adds the authenticated
+`delete_my_training_history(text)` RPC. It is a security-invoker function, uses
+`auth.uid()` for every delete, and requires the exact confirmation phrase. It
+deletes owner rows from `workout_sets`, `workout_sessions`, `cardio_entries`, and
+`rest_days`; exercise libraries, profiles, auth users, and preference cookies are
+not deleted.
+
+The same migration only narrows API permissions on legacy Setline objects when
+those objects exist. It deliberately does not drop unknown legacy tables or data.
+Apply this migration only after preview approval and a backup/export check.

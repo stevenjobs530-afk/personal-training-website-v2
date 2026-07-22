@@ -139,3 +139,21 @@ This file records important project decisions. Add new entries when the project 
 - **Reason:** The owner wants a convenient Home Screen app without paying for Apple Developer Program distribution.
 - **Alternatives considered:** rebuild the product as a native SwiftUI app immediately, wrap the website in a native shell with free seven-day provisioning, or leave it as a browser-only website.
 - **Consequences:** The site publishes a web-app manifest, Apple Home Screen icon, standalone display metadata, and an installation guide in Settings. It remains online-first because authentication and training records depend on Supabase; no service worker caches private workout pages or data.
+
+## 2026-07-22
+
+### Decision: Layer the approved improvements onto the current blue editorial UI
+
+- **Reason:** The GitHub `main` branch at `97d76d6` is the source of truth for the current interface. Earlier local copies predate the July visual refresh and must not be used as a design baseline.
+- **Alternatives considered:** continue polishing the older local checkout, or replace the current interface with a new component system.
+- **Consequences:** The current app shell, Today cards, responsive Progress tiles, typography, colour system, and PWA work remain intact. New navigation, preferences, exports, deletion safeguards, Progress behaviour, and Rest Day Undo are added within that visual language.
+
+### Decision: Keep preferences device-local and training data canonical
+
+- **Reason:** This is a single-owner app used on iPhone and desktop. Interface language and display units can differ by device without rewriting historical records.
+- **Consequences:** English/Chinese, kg/lb, and km/mi preferences are stored in secure first-party cookies. Strength weights remain kilograms in Supabase; conversions happen only for display. Cardio entries retain their recorded unit.
+
+### Decision: Make history deletion owner-scoped, explicit, and fail-closed
+
+- **Reason:** A delete-all control is useful only if an accidental click cannot erase data and a missing migration cannot fall back to unsafe client-side deletes.
+- **Consequences:** The UI requires the exact phrase `DELETE ALL HISTORY`; an authenticated, security-invoker database function deletes only rows owned by `auth.uid()`. Exercise libraries, account, profile, and settings are preserved. The preview does not apply the migration to the live database.

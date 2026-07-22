@@ -142,3 +142,12 @@ Cycling and Elliptical are recorded by kcal without distance. Cardio entries use
 duration, conditional distance, distance unit, kcal, and optional notes. They
 should not be forced into `workout_sets`, because strength sets use weight, reps,
 set number, and warmup/working kind.
+
+## 2026-07-22 Preview Additions
+
+- `lib/preferences.ts` reads device-local language and display-unit cookies on the server.
+- `app/_components/mobile-navigation.tsx` provides the five-item iPhone bottom navigation; the existing desktop header and tabs remain unchanged.
+- `app/settings/export/route.ts` creates authenticated, RLS-scoped CSV and Excel-compatible downloads without a service-role key.
+- `app/settings/actions.ts` stores preferences and calls the protected owner-history RPC.
+- Progress continues to derive data from existing workout rows. Only one exercise panel is mounted at a time, defaulting to the most recently trained exercise.
+- Rest Day removal returns a short-lived client Undo action; Supabase remains the source of truth after refresh.

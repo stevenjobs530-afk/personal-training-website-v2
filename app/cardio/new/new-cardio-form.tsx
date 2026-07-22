@@ -17,6 +17,7 @@ export type CardioExerciseOption = {
 
 type NewCardioFormProps = {
   defaultDate: string;
+  defaultDistanceUnit: "km" | "mi";
   exercises: CardioExerciseOption[];
 };
 
@@ -42,12 +43,13 @@ function ActionMessage({ state }: { state: CardioActionState }) {
   );
 }
 
-export function NewCardioForm({ defaultDate, exercises }: NewCardioFormProps) {
+export function NewCardioForm({ defaultDate, defaultDistanceUnit, exercises }: NewCardioFormProps) {
   const [state, formAction, pending] = useActionState(
     createCardioEntry,
     initialActionState,
   );
   const [selectedExerciseId, setSelectedExerciseId] = useState("");
+  const [distanceUnit, setDistanceUnit] = useState(defaultDistanceUnit);
   const [newCategory, setNewCategory] =
     useState<(typeof cardioCategories)[number]>("indoor_walking");
   const selectedExercise = useMemo(
@@ -93,7 +95,12 @@ export function NewCardioForm({ defaultDate, exercises }: NewCardioFormProps) {
             disabled={pending}
             id="cardio-exercise-id"
             name="cardio_exercise_id"
-            onChange={(event) => setSelectedExerciseId(event.target.value)}
+            onChange={(event) => {
+              const exerciseId = event.target.value;
+              setSelectedExerciseId(exerciseId);
+              const exercise = exercises.find((item) => item.id === exerciseId);
+              setDistanceUnit(exercise?.defaultDistanceUnit ?? defaultDistanceUnit);
+            }}
             value={selectedExerciseId}
           >
             <option value="">Create new below</option>
@@ -219,10 +226,11 @@ export function NewCardioForm({ defaultDate, exercises }: NewCardioFormProps) {
           </label>
           <select
             className="min-h-12 w-full rounded-md border border-[var(--border)] bg-white px-3 text-base outline-none focus:border-[var(--accent)] disabled:bg-[var(--surface-strong)]"
-            defaultValue="km"
             disabled={pending}
             id="distance-unit"
             name="distance_unit"
+            onChange={(event) => setDistanceUnit(event.target.value as "km" | "mi")}
+            value={distanceUnit}
           >
             <option value="km">km</option>
             <option value="mi">mi</option>

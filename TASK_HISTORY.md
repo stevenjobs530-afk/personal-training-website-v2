@@ -511,6 +511,15 @@ This file tracks what has been done, what failed, and what future Codex sessions
 - In owner logged-in browser sessions at mobile, tablet, and desktop widths, open `/history`, confirm the top tabs remain usable, and confirm the History cards show expected strength/cardio records.
 - In an owner logged-in browser session, open `/exercises` and `/progress`, confirm the Saved Exercises categories and progress trend accordions match the intended visual direction, then decide what polish should happen next.
 
+## 2026-07-22 — Current-UI improvement preview
+
+- Verified GitHub `main` commit `97d76d6bb38809925a0f37365a779e1b69205398` as the current source after an older local checkout was identified as stale.
+- Created isolated branch `codex/training-preview-current-ui-2026-07-22`; no production deployment, GitHub push, or live Supabase mutation was performed.
+- Preserved the blue editorial shell, Today cards, responsive Progress tiles, PWA metadata, and existing authenticated flows.
+- Added iPhone bottom navigation, bilingual/device unit preferences, owner-scoped CSV/Excel-compatible exports, guarded history deletion, Rest Day Undo, and the requested Progress defaults.
+- Added but did not apply migration `20260722155833_add_safe_history_management.sql`.
+- `npm run lint` and `npm run build` passed. Automated in-app-browser visual QA of localhost was blocked by browser URL policy, so owner visual review remains required.
+
 ## Things To Avoid Repeating
 
 - Do not mix multiple auth patterns.

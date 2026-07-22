@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import type { AppLocale } from "@/lib/preferences-types";
 
 export type ProgressPoint = {
   date: string;
@@ -17,8 +18,6 @@ export type StrengthSetSummary = {
 
 export type StrengthProgressSummary = {
   bestSet: StrengthSetSummary | null;
-  lastSet: StrengthSetSummary | null;
-  latestVolume: ProgressPoint | null;
 };
 
 export type ProgressItem = {
@@ -32,18 +31,16 @@ export type ProgressItem = {
   points: ProgressPoint[];
   strengthSummary?: StrengthProgressSummary;
   unit: string;
-  volumePoints?: ProgressPoint[];
 };
 
 type ProgressViewProps = {
   items: ProgressItem[];
+  locale: AppLocale;
 };
 
 type ChartPoint = ProgressPoint & {
   observed?: boolean;
 };
-
-type StrengthChartMode = "average" | "volume";
 
 const timeRanges = [
   { days: 7, id: "7d", label: "1W" },
@@ -196,14 +193,6 @@ function formatAxisValue(value: number) {
   return value.toFixed(1);
 }
 
-function formatMetricValue(value: number) {
-  const formattedValue = Number.isInteger(value)
-    ? value
-    : Number(value.toFixed(1));
-
-  return new Intl.NumberFormat("en").format(formattedValue);
-}
-
 function getChartData({
   points,
   rangeId,
@@ -266,56 +255,13 @@ function buildTrendPath(coordinates: ReturnType<typeof getChartData>["coordinate
   }, `M ${firstPoint.x.toFixed(1)} ${firstPoint.y.toFixed(1)}`);
 }
 
-function ChartMetricControl({
-  chartMode,
-  setChartMode,
-}: {
-  chartMode: StrengthChartMode;
-  setChartMode: (mode: StrengthChartMode) => void;
-}) {
-  const options: { id: StrengthChartMode; label: string }[] = [
-    { id: "average", label: "Avg weight" },
-    { id: "volume", label: "Volume" },
-  ];
-
-  return (
-    <div className="inline-grid grid-cols-2 overflow-hidden rounded-md border border-[var(--border)] bg-[var(--surface)]">
-      {options.map((option) => {
-        const isActive = option.id === chartMode;
-
-        return (
-          <button
-            className={`min-h-8 px-3 text-xs font-black ${
-              isActive
-                ? "bg-[var(--accent)] text-white"
-                : "bg-white text-[var(--muted)]"
-            }`}
-            key={option.id}
-            onClick={() => setChartMode(option.id)}
-            type="button"
-          >
-            {option.label}
-          </button>
-        );
-      })}
-    </div>
-  );
-}
-
 function TrendChart({ item }: { item: ProgressItem }) {
   const [rangeId, setRangeId] = useState<TimeRangeId>("30d");
-  const [chartMode, setChartMode] = useState<StrengthChartMode>("average");
-  const isVolumeMode = item.kind === "strength" && chartMode === "volume";
-  const metricMode = isVolumeMode ? "sum" : item.metricMode;
-  const metricLabel = isVolumeMode
-    ? "Total working volume by day"
-    : item.metricLabel;
-  const unit = isVolumeMode ? "kg x reps" : item.unit;
-  const emptyMessage = isVolumeMode ? "No working volume yet." : item.emptyMessage;
-  const chartPoints = useMemo(
-    () => (isVolumeMode ? item.volumePoints ?? [] : item.points),
-    [isVolumeMode, item.points, item.volumePoints],
-  );
+  const metricMode = item.metricMode;
+  const metricLabel = item.metricLabel;
+  const unit = item.unit;
+  const emptyMessage = item.emptyMessage;
+  const chartPoints = item.points;
   const visiblePoints = useMemo(
     () =>
       getVisiblePoints({
@@ -327,9 +273,6 @@ function TrendChart({ item }: { item: ProgressItem }) {
   );
   const controls = (
     <div className="flex w-full flex-wrap gap-2 md:w-auto md:justify-end">
-      {item.kind === "strength" ? (
-        <ChartMetricControl chartMode={chartMode} setChartMode={setChartMode} />
-      ) : null}
       <ChartRangeControl rangeId={rangeId} setRangeId={setRangeId} />
     </div>
   );
@@ -485,9 +428,13 @@ function ChartRangeControl({
   );
 }
 
-function CalculationNotes({ kind }: { kind: ProgressItem["kind"] }) {
+function CalculationNotes({ kind, locale }: { kind: ProgressItem["kind"]; locale: AppLocale }) {
   const notes =
-    kind === "strength"
+    locale === "zh"
+      ? kind === "strength"
+        ? [["数据来源", "已记录的力量训练历史"], ["不含热身组", "热身组不会计入计算"], ["只计算工作组", "分析只使用工作组数据"], ["每日数据点", "同一天的工作组会计算为一个平均值"]]
+        : [["数据来源", "已记录的有氧训练历史"], ["热量合计", "按动作和日期汇总热量"], ["累计总量", "选定期间内的热量持续累加"], ["独立记录", "有氧数据不会与力量训练组混合"]]
+      : kind === "strength"
       ? [
           ["Data source", "Recorded workout history"],
           ["Warm-up sets excluded", "Warm-ups are not included in calculations"],
@@ -496,7 +443,6 @@ function CalculationNotes({ kind }: { kind: ProgressItem["kind"] }) {
             "Daily data point",
             "Multiple working sets on the same day are averaged into one point",
           ],
-          ["Volume", "Volume sums weight x reps by workout date"],
         ]
       : [
           ["Data source", "Recorded cardio history"],
@@ -508,7 +454,7 @@ function CalculationNotes({ kind }: { kind: ProgressItem["kind"] }) {
   return (
     <div className="rounded-md border border-[var(--border)] bg-white p-4">
       <h3 className="text-sm font-black text-[var(--foreground)]">
-        How progress is calculated
+        {locale === "zh" ? "进度计算方式" : "How progress is calculated"}
       </h3>
       <ul className="mt-3 space-y-3">
         {notes.map(([title, body]) => (
@@ -531,68 +477,37 @@ function CalculationNotes({ kind }: { kind: ProgressItem["kind"] }) {
   );
 }
 
-function formatSetSummary(value: StrengthSetSummary | null) {
-  return value ? `${value.weight} kg x ${value.reps}` : "No working sets yet";
+function formatSetSummary(value: StrengthSetSummary | null, unit: string, locale: AppLocale) {
+  return value ? `${value.weight} ${unit} × ${value.reps}` : locale === "zh" ? "还没有工作组记录" : "No working sets yet";
 }
 
 function StrengthSummaryChips({
   summary,
+  unit,
+  locale,
 }: {
   summary: StrengthProgressSummary | undefined;
+  unit: string;
+  locale: AppLocale;
 }) {
-  const latestVolume = summary?.latestVolume;
-  const chips = [
-    {
-      label: "Best set",
-      value: formatSetSummary(summary?.bestSet ?? null),
-    },
-    {
-      label: "Last set",
-      value: formatSetSummary(summary?.lastSet ?? null),
-    },
-    {
-      label: "Latest volume",
-      value: latestVolume
-        ? `${formatMetricValue(latestVolume.value)} kg x reps`
-        : "No volume yet",
-      detail: latestVolume?.label,
-    },
-  ];
-
   return (
-    <div className="grid gap-2 sm:grid-cols-3">
-      {chips.map((chip) => (
-        <div
-          className="rounded-md border border-[var(--border)] bg-white px-3 py-2"
-          key={chip.label}
-        >
-          <p className="text-[0.68rem] font-black uppercase text-[var(--muted)]">
-            {chip.label}
-          </p>
-          <p className="mt-1 text-sm font-black text-[var(--foreground)]">
-            {chip.value}
-          </p>
-          {chip.detail ? (
-            <p className="mt-1 text-xs font-semibold text-[var(--muted)]">
-              {chip.detail}
-            </p>
-          ) : null}
-        </div>
-      ))}
+    <div className="rounded-md border border-[var(--border)] bg-white px-4 py-3">
+      <p className="text-[0.68rem] font-black uppercase text-[var(--muted)]">{locale === "zh" ? "最佳训练组" : "Best set"}</p>
+      <p className="mt-1 text-xl font-black text-[var(--foreground)]">{formatSetSummary(summary?.bestSet ?? null, unit, locale)}</p>
     </div>
   );
 }
 
-function ProgressPanel({ item }: { item: ProgressItem }) {
+function ProgressPanel({ item, locale }: { item: ProgressItem; locale: AppLocale }) {
   return (
     <div className="grid gap-4 border-t border-[var(--border)] p-3 lg:grid-cols-[minmax(0,1.65fr)_minmax(18rem,1fr)]">
       <div className="space-y-3">
         {item.kind === "strength" ? (
-          <StrengthSummaryChips summary={item.strengthSummary} />
+          <StrengthSummaryChips locale={locale} summary={item.strengthSummary} unit={item.unit} />
         ) : null}
         <TrendChart item={item} />
       </div>
-      <CalculationNotes kind={item.kind} />
+      <CalculationNotes kind={item.kind} locale={locale} />
     </div>
   );
 }
@@ -648,12 +563,14 @@ function ProgressCategory({
 
 function ProgressItemList({
   items,
+  locale,
   onItemOpenChange,
-  openItemIds,
+  openItemId,
 }: {
   items: ProgressItem[];
+  locale: AppLocale;
   onItemOpenChange: (itemId: string, isOpen: boolean) => void;
-  openItemIds: Set<string>;
+  openItemId: string | null;
 }) {
   if (!items.length) {
     return (
@@ -673,7 +590,7 @@ function ProgressItemList({
             onToggle={(event) =>
               onItemOpenChange(item.id, event.currentTarget.open)
             }
-            open={openItemIds.has(item.id)}
+            open={openItemId === item.id}
           >
             <summary className="progress-tile-summary">
               <span className="progress-tile-identity">
@@ -700,7 +617,7 @@ function ProgressItemList({
                 </svg>
               </span>
             </summary>
-            <ProgressPanel item={item} />
+            {openItemId === item.id ? <ProgressPanel item={item} locale={locale} /> : null}
           </details>
         ))}
       </section>
@@ -708,17 +625,11 @@ function ProgressItemList({
   );
 }
 
-export function ProgressView({ items }: ProgressViewProps) {
+export function ProgressView({ items, locale }: ProgressViewProps) {
   const [query, setQuery] = useState("");
-  const [openItemIds, setOpenItemIds] = useState<Set<string>>(() => {
-    const firstStrengthItem = items.find((item) => item.kind === "strength");
-    const firstCardioItem = items.find((item) => item.kind === "cardio");
-
-    return new Set(
-      [firstStrengthItem?.id, firstCardioItem?.id].filter(
-        (id): id is string => Boolean(id),
-      ),
-    );
+  const [openItemId, setOpenItemId] = useState<string | null>(() => {
+    const recent = items.map((item) => ({ id: item.id, date: item.points[item.points.length - 1]?.date ?? "" })).toSorted((a, b) => b.date.localeCompare(a.date))[0];
+    return recent?.date ? recent.id : items[0]?.id ?? null;
   });
   const filteredItems = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -731,36 +642,10 @@ export function ProgressView({ items }: ProgressViewProps) {
   }, [items, query]);
   const strengthItems = filteredItems.filter((item) => item.kind === "strength");
   const cardioItems = filteredItems.filter((item) => item.kind === "cardio");
-  const visibleItemIds = filteredItems.map((item) => item.id);
-  const allVisibleItemsOpen =
-    visibleItemIds.length > 0 && visibleItemIds.every((id) => openItemIds.has(id));
-
   function handleItemOpenChange(itemId: string, isOpen: boolean) {
-    setOpenItemIds((currentOpenIds) => {
-      const nextOpenIds = new Set(currentOpenIds);
-
-      if (isOpen) {
-        nextOpenIds.add(itemId);
-      } else {
-        nextOpenIds.delete(itemId);
-      }
-
-      return nextOpenIds;
-    });
-  }
-
-  function toggleAllVisibleItems() {
-    setOpenItemIds((currentOpenIds) => {
-      const nextOpenIds = new Set(currentOpenIds);
-
-      if (allVisibleItemsOpen) {
-        visibleItemIds.forEach((id) => nextOpenIds.delete(id));
-      } else {
-        visibleItemIds.forEach((id) => nextOpenIds.add(id));
-      }
-
-      return nextOpenIds;
-    });
+    setOpenItemId((currentItemId) =>
+      isOpen ? itemId : currentItemId === itemId ? null : currentItemId,
+    );
   }
 
   return (
@@ -768,24 +653,24 @@ export function ProgressView({ items }: ProgressViewProps) {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="w-full max-w-sm">
           <label className="sr-only" htmlFor="progress-search">
-            Search exercise progress
+            {locale === "zh" ? "搜索训练动作进度" : "Search exercise progress"}
           </label>
           <input
             className="min-h-11 w-full rounded-md border border-[var(--border)] bg-white px-4 text-sm outline-none focus:border-[var(--accent)]"
             id="progress-search"
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search exercise progress"
+            placeholder={locale === "zh" ? "搜索训练动作进度" : "Search exercise progress"}
             type="search"
             value={query}
           />
         </div>
-        {filteredItems.length ? (
+        {openItemId ? (
           <button
             className="inline-flex min-h-10 items-center justify-center rounded-md border border-[var(--border)] bg-white px-4 text-sm font-black text-[var(--foreground)] hover:bg-[var(--surface-strong)]"
-            onClick={toggleAllVisibleItems}
+            onClick={() => setOpenItemId(null)}
             type="button"
           >
-            {allVisibleItemsOpen ? "Collapse all" : "Expand all"}
+            {locale === "zh" ? "收起图表" : "Collapse chart"}
           </button>
         ) : null}
       </div>
@@ -801,8 +686,9 @@ export function ProgressView({ items }: ProgressViewProps) {
           >
             <ProgressItemList
               items={strengthItems}
+              locale={locale}
               onItemOpenChange={handleItemOpenChange}
-              openItemIds={openItemIds}
+              openItemId={openItemId}
             />
           </ProgressCategory>
 
@@ -815,8 +701,9 @@ export function ProgressView({ items }: ProgressViewProps) {
           >
             <ProgressItemList
               items={cardioItems}
+              locale={locale}
               onItemOpenChange={handleItemOpenChange}
-              openItemIds={openItemIds}
+              openItemId={openItemId}
             />
           </ProgressCategory>
         </section>

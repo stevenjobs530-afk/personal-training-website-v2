@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { AppShell } from "../_components/app-shell";
 import { PlaceholderPage } from "../_components/placeholder-page";
-import { removeRestDay } from "@/app/_actions/rest-days";
+import { RestDayRemoval } from "@/app/_components/rest-day-removal";
 import { requireAuth } from "@/lib/auth/require-auth";
 import { createClient } from "@/lib/supabase/server";
 
@@ -516,20 +516,7 @@ export default async function WorkoutsPage() {
                           {day.restDay.notes ?? "Recovery day - no training logged"}
                         </p>
                       </div>
-                      <form action={removeRestDay}>
-                        <input
-                          name="rest_day_id"
-                          type="hidden"
-                          value={day.restDay.id}
-                        />
-                        <button
-                          aria-label={`Remove rest day on ${dateParts.label}`}
-                          className="inline-flex min-h-10 shrink-0 items-center justify-center rounded-md border border-[var(--border)] bg-white px-3 text-sm font-bold text-[var(--muted)]"
-                          type="submit"
-                        >
-                          Remove
-                        </button>
-                      </form>
+                      <RestDayRemoval compact label="Remove" restDayId={day.restDay.id} />
                     </div>
                   </li>
                 );

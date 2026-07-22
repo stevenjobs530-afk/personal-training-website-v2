@@ -1,6 +1,8 @@
 import { AppShell } from "../_components/app-shell";
 import { PlaceholderPage } from "../_components/placeholder-page";
 import { requireAuth } from "@/lib/auth/require-auth";
+import { getAppPreferences } from "@/lib/preferences";
+import { SettingsPanel } from "./settings-panel";
 
 export const dynamic = "force-dynamic";
 
@@ -28,13 +30,15 @@ const installSteps = [
 
 export default async function SettingsPage() {
   await requireAuth("/settings");
+  const preferences = await getAppPreferences();
+  const zh = preferences.locale === "zh";
 
   return (
     <AppShell>
       <PlaceholderPage
-        eyebrow="Settings"
-        title="Install on your iPhone"
-        description="Add Personal Training to your Home Screen and open it like a dedicated app—without an App Store download or developer subscription."
+        eyebrow={zh ? "设置" : "Settings"}
+        title={zh ? "安装与私人数据" : "Install and private data"}
+        description={zh ? "设置语言和单位、导出训练记录，并将网站添加到 iPhone 主屏幕。" : "Set language and units, export your training records, and add the site to your iPhone Home Screen."}
       >
         <section className="install-app-card ui-card">
           <header className="install-app-card__header">
@@ -87,6 +91,8 @@ export default async function SettingsPage() {
             ))}
           </ul>
         </section>
+
+        <SettingsPanel preferences={preferences} />
       </PlaceholderPage>
     </AppShell>
   );

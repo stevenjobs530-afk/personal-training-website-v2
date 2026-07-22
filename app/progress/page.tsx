@@ -2,6 +2,8 @@ import { AppShell } from "../_components/app-shell";
 import { PlaceholderPage } from "../_components/placeholder-page";
 import { requireAuth } from "@/lib/auth/require-auth";
 import { createClient } from "@/lib/supabase/server";
+import { getAppPreferences } from "@/lib/preferences";
+import type { AppLocale, WeightUnitPreference } from "@/lib/preferences-types";
 import { filterStrengthExercises } from "@/lib/training/cardio-reserved";
 import { ProgressView, type ProgressItem } from "./progress-view";
 
@@ -52,8 +54,8 @@ type SetSummary = {
   workoutDate: string;
 };
 
-function formatPointLabel(value: string) {
-  return new Intl.DateTimeFormat("en", {
+function formatPointLabel(value: string, locale: AppLocale) {
+  return new Intl.DateTimeFormat(locale === "zh" ? "zh-CN" : "en", {
     day: "numeric",
     month: "short",
     timeZone: "UTC",
@@ -64,22 +66,22 @@ function getInitial(name: string) {
   return name.trim().charAt(0).toUpperCase() || "?";
 }
 
-function buildAveragePoints(valuesByDate: Map<string, AggregateValue>) {
+function buildAveragePoints(valuesByDate: Map<string, AggregateValue>, locale: AppLocale) {
   return Array.from(valuesByDate.entries())
     .toSorted(([leftDate], [rightDate]) => leftDate.localeCompare(rightDate))
     .map(([date, value]) => ({
       date,
-      label: formatPointLabel(date),
+      label: formatPointLabel(date, locale),
       value: Number((value.total / value.count).toFixed(1)),
     }));
 }
 
-function buildSumPoints(valuesByDate: Map<string, number>) {
+function buildSumPoints(valuesByDate: Map<string, number>, locale: AppLocale) {
   return Array.from(valuesByDate.entries())
     .toSorted(([leftDate], [rightDate]) => leftDate.localeCompare(rightDate))
     .map(([date, value]) => ({
       date,
-      label: formatPointLabel(date),
+      label: formatPointLabel(date, locale),
       value,
     }));
 }
@@ -123,35 +125,21 @@ function isBestSet(candidate: SetSummary, current: SetSummary | undefined) {
   return candidate.setNumber > current.setNumber;
 }
 
-function isLatestSet(candidate: SetSummary, current: SetSummary | undefined) {
-  if (!current) {
-    return true;
-  }
-
-  if (candidate.workoutDate !== current.workoutDate) {
-    return candidate.workoutDate > current.workoutDate;
-  }
-
-  if (candidate.createdAt !== current.createdAt) {
-    return candidate.createdAt > current.createdAt;
-  }
-
-  return candidate.setNumber > current.setNumber;
-}
-
 function buildStrengthProgressItems({
   exercises,
+  locale,
   sessionsById,
+  weightUnit,
   workoutSets,
 }: {
   exercises: ExerciseRow[];
+  locale: AppLocale;
   sessionsById: Map<string, WorkoutSessionRow>;
+  weightUnit: WeightUnitPreference;
   workoutSets: WorkoutSetRow[];
 }): ProgressItem[] {
   const valuesByExercise = new Map<string, Map<string, AggregateValue>>();
-  const volumeByExercise = new Map<string, Map<string, number>>();
   const bestSetByExercise = new Map<string, SetSummary>();
-  const lastSetByExercise = new Map<string, SetSummary>();
 
   workoutSets.forEach((set) => {
     if (set.set_kind !== "working") {
@@ -176,61 +164,38 @@ function buildStrengthProgressItems({
     addAggregate(valuesByDate, session.workout_date, weight);
     valuesByExercise.set(set.exercise_id, valuesByDate);
 
-    const volumeByDate = volumeByExercise.get(set.exercise_id) ?? new Map();
-    volumeByDate.set(
-      session.workout_date,
-      (volumeByDate.get(session.workout_date) ?? 0) + weight * set.reps,
-    );
-    volumeByExercise.set(set.exercise_id, volumeByDate);
-
     if (isBestSet(summary, bestSetByExercise.get(set.exercise_id))) {
       bestSetByExercise.set(set.exercise_id, summary);
-    }
-
-    if (isLatestSet(summary, lastSetByExercise.get(set.exercise_id))) {
-      lastSetByExercise.set(set.exercise_id, summary);
     }
   });
 
   return exercises.map((exercise) => {
-    const points = buildAveragePoints(valuesByExercise.get(exercise.id) ?? new Map());
-    const volumePoints = buildSumPoints(volumeByExercise.get(exercise.id) ?? new Map());
+    const conversion = weightUnit === "lb" ? 2.2046226218 : 1;
+    const sourcePoints = valuesByExercise.get(exercise.id) ?? new Map();
+    const convertedPoints = new Map(
+      Array.from(sourcePoints.entries()).map(([date, value]) => [date, { count: value.count, total: value.total * conversion }]),
+    );
+    const points = buildAveragePoints(convertedPoints, locale);
     const bestSet = bestSetByExercise.get(exercise.id);
-    const lastSet = lastSetByExercise.get(exercise.id);
-    const latestVolume = volumePoints[volumePoints.length - 1];
 
     return {
-      emptyMessage: "No working-set trend yet.",
+      emptyMessage: locale === "zh" ? "还没有工作组趋势数据。" : "No working-set trend yet.",
       id: `strength-${exercise.id}`,
       initial: getInitial(exercise.name),
       kind: "strength",
       metricMode: "average",
-      metricLabel: "Average working-set weight over time",
+      metricLabel: locale === "zh" ? "平均工作组重量趋势" : "Average working-set weight over time",
       name: exercise.name,
       points,
       strengthSummary: {
         bestSet: bestSet
           ? {
               reps: bestSet.reps,
-              weight: formatWeight(bestSet.weight),
-            }
-          : null,
-        lastSet: lastSet
-          ? {
-              reps: lastSet.reps,
-              weight: formatWeight(lastSet.weight),
-            }
-          : null,
-        latestVolume: latestVolume
-          ? {
-              date: latestVolume.date,
-              label: latestVolume.label,
-              value: latestVolume.value,
+              weight: formatWeight(bestSet.weight * conversion),
             }
           : null,
       },
-      unit: "kg",
-      volumePoints,
+      unit: weightUnit,
     };
   });
 }
@@ -238,9 +203,11 @@ function buildStrengthProgressItems({
 function buildCardioProgressItems({
   cardioEntries,
   cardioExercises,
+  locale,
 }: {
   cardioEntries: CardioEntryRow[];
   cardioExercises: CardioExerciseRow[];
+  locale: AppLocale;
 }): ProgressItem[] {
   const valuesByExercise = new Map<string, Map<string, number>>();
 
@@ -257,20 +224,21 @@ function buildCardioProgressItems({
   });
 
   return cardioExercises.map((exercise) => ({
-    emptyMessage: "No cardio kcal trend yet.",
+    emptyMessage: locale === "zh" ? "还没有有氧热量趋势数据。" : "No cardio kcal trend yet.",
     id: `cardio-${exercise.id}`,
     initial: getInitial(exercise.name),
     kind: "cardio",
     metricMode: "cumulative",
-    metricLabel: "Cumulative kcal consumed over time",
+    metricLabel: locale === "zh" ? "累计消耗热量趋势" : "Cumulative kcal consumed over time",
     name: exercise.name,
-    points: buildSumPoints(valuesByExercise.get(exercise.id) ?? new Map()),
+    points: buildSumPoints(valuesByExercise.get(exercise.id) ?? new Map(), locale),
     unit: "kcal",
   }));
 }
 
 export default async function ProgressPage() {
   await requireAuth("/progress");
+  const preferences = await getAppPreferences();
 
   const supabase = await createClient();
   const exercisesResult = await supabase
@@ -300,7 +268,9 @@ export default async function ProgressPage() {
 
   const strengthItems = buildStrengthProgressItems({
     exercises: filterStrengthExercises((exercisesResult.data ?? []) as ExerciseRow[]),
+    locale: preferences.locale,
     sessionsById,
+    weightUnit: preferences.weightUnit,
     workoutSets,
   });
   const cardioItems =
@@ -309,6 +279,7 @@ export default async function ProgressPage() {
       : buildCardioProgressItems({
           cardioEntries: (cardioEntriesResult.data ?? []) as CardioEntryRow[],
           cardioExercises: (cardioExercisesResult.data ?? []) as CardioExerciseRow[],
+          locale: preferences.locale,
         });
   const items = [...strengthItems, ...cardioItems].toSorted((left, right) =>
     left.name.localeCompare(right.name),
@@ -323,9 +294,9 @@ export default async function ProgressPage() {
   return (
     <AppShell>
       <PlaceholderPage
-        eyebrow="Progress"
-        title="Personal Training Experience Progress"
-        description="Search and review trends for each saved exercise over time."
+        eyebrow={preferences.locale === "zh" ? "训练进度" : "Progress"}
+        title={preferences.locale === "zh" ? "个人训练进度" : "Personal Training Progress"}
+        description={preferences.locale === "zh" ? "搜索并查看每个训练动作的长期趋势。" : "Search and review trends for each saved exercise over time."}
       >
         {loadError ? (
           <div
@@ -337,7 +308,7 @@ export default async function ProgressPage() {
           </div>
         ) : null}
 
-        <ProgressView items={items} />
+        <ProgressView items={items} locale={preferences.locale} />
       </PlaceholderPage>
     </AppShell>
   );

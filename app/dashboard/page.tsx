@@ -6,6 +6,7 @@ import { AppShell } from "../_components/app-shell";
 import { PlaceholderPage } from "../_components/placeholder-page";
 import { requireAuth } from "@/lib/auth/require-auth";
 import { createClient } from "@/lib/supabase/server";
+import { getAppPreferences } from "@/lib/preferences";
 import { formatDateKey, getLocalDateKey } from "@/lib/training/dates";
 import {
   backfillMissingRestDays,
@@ -15,25 +16,26 @@ import { TodayRestDayCard } from "./today-rest-day-card";
 
 export const dynamic = "force-dynamic";
 
-const trainingChoices = [
-  {
-    href: "/workouts/new",
-    label: "Strength Training",
-    description: "Weights, machines, warmup sets, working sets, reps.",
-    cta: "Start strength",
-    tone: "strength",
-  },
-  {
-    href: "/cardio/new",
-    label: "Cardio",
-    description: "Walking and running with distance, cycling and elliptical by kcal.",
-    cta: "Record cardio",
-    tone: "cardio",
-  },
-];
-
 export default async function DashboardPage() {
   await requireAuth("/dashboard");
+  const preferences = await getAppPreferences();
+  const zh = preferences.locale === "zh";
+  const trainingChoices = [
+    {
+      href: "/workouts/new",
+      label: zh ? "力量训练" : "Strength Training",
+      description: zh ? "重量、器械、热身组、工作组和次数。" : "Weights, machines, warmup sets, working sets, reps.",
+      cta: zh ? "开始力量训练" : "Start strength",
+      tone: "strength",
+    },
+    {
+      href: "/cardio/new",
+      label: zh ? "有氧训练" : "Cardio",
+      description: zh ? "步行和跑步记录距离，骑行和椭圆机记录热量。" : "Walking and running with distance, cycling and elliptical by kcal.",
+      cta: zh ? "记录有氧" : "Record cardio",
+      tone: "cardio",
+    },
+  ];
   const supabase = await createClient();
   const { data: userData } = await supabase.auth.getUser();
   const userId = userData.user?.id;
@@ -61,14 +63,15 @@ export default async function DashboardPage() {
   return (
     <AppShell>
       <PlaceholderPage
-        eyebrow="Today"
-        title="Today's training"
-        description="Choose strength, cardio, or mark today as a Rest Day."
+        eyebrow={zh ? "今天" : "Today"}
+        title={zh ? "今天的训练" : "Today's training"}
+        description={zh ? "选择力量训练、有氧训练，或将今天标记为休息日。" : "Choose strength, cardio, or mark today as a Rest Day."}
       >
         <TodayRestDayCard
           backfilledDates={backfillResult.insertedDates}
           hasCardio={todayStatus.hasCardio}
           hasStrength={todayStatus.hasStrength}
+          locale={preferences.locale}
           restDay={todayStatus.restDay}
           setupError={todayStatus.setupError ?? backfillResult.setupError}
           todayLabel={formatDateKey(todayDateKey)}

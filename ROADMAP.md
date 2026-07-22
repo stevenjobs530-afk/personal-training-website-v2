@@ -131,3 +131,16 @@ Later improvements may include:
 - [ ] Confirm RLS is required before any user data table is used.
 - [ ] Confirm whether old Supabase data should be ignored or cleaned later.
 - [ ] Confirm the first mobile workflow: add exercise, start session, add sets, view recent history.
+
+## Preview awaiting owner approval — 2026-07-22
+
+- [x] Rebase the improvement work on the current GitHub `main` UI (`97d76d6`).
+- [x] Add an iPhone bottom bar with Today, Exercises, Workouts, Progress, and More.
+- [x] Make Progress open the most recently trained exercise and keep one chart open at a time.
+- [x] Reduce strength Progress emphasis to average working-set weight and best set.
+- [x] Add English/Chinese and kg/lb plus km/mi device preferences.
+- [x] Add authenticated CSV and Excel-compatible exports.
+- [x] Add a large typed-confirmation history deletion flow that preserves libraries and account data.
+- [x] Replace Rest Day removal confirmation with an eight-second Undo state.
+- [ ] Owner visually checks the authenticated iPhone and desktop preview.
+- [ ] After approval, apply the database migration, push the preview branch, and create a Vercel preview deployment.
